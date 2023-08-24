@@ -4,6 +4,7 @@ using CSV
 using Distributions
 using DataFrames
 using Plots
+using GLMakie
 
 space = GridSpace((20, 20); periodic = false)
 
@@ -223,10 +224,11 @@ end
     sedentary_behaviour::Float32
 end
 
-function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0)
+function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
+    RH_trips_time_series = [0])
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
-    properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :total_agents => total_agents)
+    properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents)
     model = AgentBasedModel(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly()
     )
 
@@ -450,11 +452,6 @@ end
 model = initialize()
 
 function agent_step!(agent, model)
-    # transport_choice!(agent, model)
-    # agent_AV_consideration!(agent, model)
-    # agent_RH_consideration!(agent, model)
-    # transport_utilisation_choice!(agent, model)
-
     av_decision!(agent, model)
     rh_decision!(agent, model)
     agent_health!(agent, model)
@@ -523,7 +520,9 @@ function av_decision!(agent, model)
     AV_decision = AV_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.av_threshold_model)
     
     if AV_decision 
-        model.AVs += 1
+        push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
+    else
+        push!(model.AVs_time_series, model.AVs_time_series[end])
     end
 
 end
@@ -564,77 +563,15 @@ function rh_decision!(agent, model)
 
     RH_decision = RH_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.rh_threshold_model)
 
-    if RH_decision
-        model.RH_trips += 1
+    if RH_decision 
+        push!(model.RH_trips_time_series, model.RH_trips_time_series[end] + 1)
+    else
+        push!(model.RH_trips_time_series, model.RH_trips_time_series[end])
     end
 
 end
 
 
-# subjecive norm is the average of the nearby agents
-# descriptive norm is the average of the model 
-
-# END TESTING # 
-
-## OLD CODE ## 
-
-# function transport_choice!(agent, model)
-#     if agent.transport_type != 1
-#         if agent.av_attitudes >= 0.7 && agent.av_social_norms >= 0.7 && agent.av_control_factors >= 0.7
-#             agent.av_behavioural_intention = 1
-#             if agent.income > model.private_AV_cost && agent.av_behavioural_intention == 1
-#                 agent.transport_type = 1
-#             elseif agent.impulsivity >= 0.9
-#                 agent.transport_type = 1
-#             end
-#         end
-#     end
-# end
-
-# function agent_AV_consideration!(agent, model)
-#     for nearagents in nearby_agents(agent, model)
-#         if nearagents.transport_type == 1
-#             if agent.av_attitudes < 1
-#                 agent.av_attitudes += 0.05
-#             end
-#         end
-#     end
-# end
-
-# function transport_utilisation_choice!(agent, model)
-#     if agent.transport_type == 1
-#         agent.transport_choice = 1 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Cycling,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-#         # Consideration of ride-hail app
-#     else
-#         for nearagents in nearby_agents(agent, model)
-#             if nearagents.rh_attitudes > 0.5 && agent.rh_social_norms > 0.7 && agent.rh_control_factors > 0.7
-#                 agent.rh_behavioural_intention = 1
-#                 if model.rh_trip_cost < (agent.income*0.001)
-#                     agent.transport_choice = 6
-#                 elseif agent.impulsivity > 0.9
-#                     agent.transport_choice = 6
-#                 else agent.transport_choice = agent.transport_type 
-#                 end
-#             end
-#         end
-#     end
-
-#     #CHECK THIS SECTION - UNCLEAR 
-#     if agent.transport_choice == 0
-#         agent.transport_choice = agent.transport_type
-#     end
-# end
-
-
-# function agent_RH_consideration!(agent, model)
-#     for nearagents in nearby_agents(agent, model)
-#         if nearagents.transport_choice == 6
-#             if agent.rh_attitudes < 1
-#                 agent.rh_attitudes += 0.05
-#             end
-#         end
-#     end
-# end
 
 function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Cycling,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
     if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
@@ -652,135 +589,57 @@ end
 model = initialize()
 
 
-adata = [:pos, :transport_type, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_behavioural_intention, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
-data, _ = run!(model, agent_step!, model_step!, 365; adata)
+# adata = [:pos, :transport_type, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_behavioural_intention, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
+# data, _ = run!(model, agent_step!, model_step!, 365; adata)
 
-# Simulating the number of AVs and RHs over time
-# Replace this with the real data from your model
-using Makie
+# # Simulating the number of AVs and RHs over time
+# # Replace this with the real data from your model
 
-time_ticks = 1:365
+# time_ticks = 1:91251
 
-# Create a figure and axis for the plot
-fig = Figure(resolution = (800, 400))
-ax = Axis(fig[1, 1])
+# # Create a figure and axis for the plot
+# fig = Figure(resolution = (800, 400))
+# ax = Axis(fig[1, 1]; xlabel = "Time", ylabel = "Number")
 
-lines!(ax, time_ticks, model.AVs, linewidth=2, color=:blue, label="AVs")
-lines!(ax, time_ticks, model.RH_trips, linewidth=2, color=:red, label="RH Trips")
+# lines!(ax, time_ticks, model.AVs_time_series, linewidth=2, color=:blue, label="AVs")
+# lines!(ax, time_ticks, model.RH_trips_time_series, linewidth=2, color=:red, label="RH Trips")
 
-# Add labels to the axes
-axislabels!(ax, "Time", "Number")
-leg = Legend(fig[1, 2], ax)
-fig[1, 2] = leg
+# # Add labels to the axes
+# # Makie.xlabel!(ax, "Time")
+# # Makie.ylabel!(ax, "Number")
+# leg = Legend(fig[1, 2], ax)
+# fig[1, 2] = leg
 
-# Show the plot
-fig
+# # Show the plot
+# fig
 
-## CODE FOR FIGURES - MAY NO LONGER BE USEABLE ## 
+adata = [(:AVs_time_series, sum)]
+alabels = ["AVs over time"]
 
-# print(data[data.transport_type .== 1, :])
+model = initialize()
 
-# CODE FOR EXTRACTING THE MEAN AND STD OF AN INDIVIDUAL COLUMN FOR A SINGLE STEP 
-# mean(data[data.step .== 0, :av_attitudes]) and std(data[data.step .== 0, :av_attitudes])
+using GLMakie # using a different plotting backend that enables interactive plots
 
-# AV TPB Vectors
-# av_attitudes_vector = Vector{Float32}()
-# av_social_norms_vector = Vector{Float32}()
-# av_control_factors_vector = Vector{Float32}()
-# av_behavioural_intentions_vector = Vector{Float32}()
-
-# # RH TPB Vectors
-# rh_attitudes_vector = Vector{Float32}()
-# rh_social_norms_vector = Vector{Float32}()
-# rh_control_factors_vector = Vector{Float32}()
-# rh_behavioural_intentions_vector = Vector{Float32}()
+figure, abmobs = abmexploration(
+    model;
+    agent_step!, model_step!, parange,
+    ac = groupcolor, am = groupmarker, as = 10,
+    adata, alabels
+)
 
 
 
-# # Health-related vectors
-# sedentary_vector = Vector{Float32}()
-
-# for i in 1:364
-#     av_attitudes_mean = mean(data[data.step .== i, :av_attitudes])
-#     rh_attitudes_mean = mean(data[data.step .== i, :rh_attitudes])
-#     sedentary_behaviour_mean = mean(data[data.step .== i, :sedentary_behaviour])
-#     # print(attitudes_mean)
-#     push!(rh_attitudes_vector, rh_attitudes_mean)
-#     push!(av_attitudes_vector, av_attitudes_mean)
-#     push!(sedentary_vector, sedentary_behaviour_mean)
-# end
-
-# # Plot the attitudes related to ride-hailing
-
-# begin 
-#     x = range(0, 363)
-#     y = [rh_attitudes_vector]
-#     fig_1 = plot(x, y, label=["attitudes toward rh"], lw=[1], legend = :outertopright)
-# end
-
-# # Plot the attitudes related to autonomous vehicles
-
-# begin 
-#     x = range(0, 363)
-#     y = [av_attitudes_vector]
-#     fig_2 = plot(x, y, label=["attitudes toward AVs"], lw=[1], legend = :outertopright)
-# end
-
-# # Plot the sedentary behaviour
-
-# begin 
-#     x = range(0, 363)
-#     y = [sedentary_vector]
-#     fig_3 = plot(x, y, label=["sedentary behaviour"], lw=[1], legend = :outertopright)
-# end
-
-# # for i in 1:100
-# #     av_step = data[data.step .== i, :transport_choice]
-# #     print(av_step)
-# # end
-
-# transport_choice_data = select(data, [:step, :transport_choice])
-
-# # print(transport_choice_data)
-
-# av_count_vector = Vector{Float32}()
-
-# for i in 1:364
-#     transport_choice_step = transport_choice_data[transport_choice_data.step .== i, :transport_choice]
-#     push!(av_count_vector, count(x->(x== 1), transport_choice_step))
-# end
-
-# print(av_count_vector)
-
-# # Plot the number of AVs over time
-
-# begin 
-#     x = range(0, 363)
-#     y = [av_count_vector]
-#     fig_4 = plot(x, y, label=["number of AVs"], lw=[1], legend = :outertopright)
-# end
-
-# # Filtering out ride-hailing data
-
-# rh_count_vector = Vector{Float32}()
-
-# for i in 1:364
-#     transport_choice_step = transport_choice_data[transport_choice_data.step .== i, :transport_choice]
-#     push!(rh_count_vector, count(x->(x== 6), transport_choice_step))
-# end
-
-# print(rh_count_vector)
-
-# # Plot the number of ride-hailing trips over time
-
-# begin 
-#     x = range(0, 363)
-#     y = [rh_count_vector]
-#     fig_5 = plot(x, y, label=["number of RHs"], lw=[1], legend = :outertopright)
-# end
 
 
-# # Plots.savefig(fig_1, "C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/fig_24_test.png")
 
-# # CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output28.csv"
-# # ,data)
+
+
+
+
+
+
+
+
+
+
+
