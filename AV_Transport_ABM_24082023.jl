@@ -454,6 +454,7 @@ model = initialize()
 function agent_step!(agent, model)
     av_decision!(agent, model)
     rh_decision!(agent, model)
+    transport_choice!(agent, model)
     agent_health!(agent, model)
 end
 
@@ -579,6 +580,13 @@ function rh_decision!(agent, model)
 
 end
 
+function transport_choice!(agent, model)
+    if agent.transport_choice != 1 && agent.transport_choice != 6
+        agent.transport_choice = agent.original_transport_type
+    end
+
+end
+
 
 
 function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Cycling,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
@@ -656,7 +664,7 @@ function plot_population_timeseries(adf)
 end
 
 
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output4_25082023.csv" ,data)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output6_25082023.csv" ,data)
 
 
 plot_population_timeseries(adf)
