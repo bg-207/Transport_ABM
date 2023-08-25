@@ -634,9 +634,10 @@ rh_user(a) = (a.transport_choice == 6)
 
 
 avcount(model) = sum(model.AVs_time_series)
+rhcount(model) = sum(model.RH_trips_time_series)
 steps = 500
 adata = [(av_user, count), (rh_user, count)]
-mdata = [avcount]
+mdata = [avcount, rhcount]
 
 adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
 
@@ -644,7 +645,8 @@ function plot_population_timeseries(mdf)
     figure = Figure(resolution = (600, 400))
     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
     av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
-    figure[1, 2] = Legend(figure, [av_population], ["AVs in population"])
+    rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
+    figure[1, 2] = Legend(figure, [av_population, rh_population], ["AVs in population", "RH trips in population"])
     figure
 end
 
