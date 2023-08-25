@@ -525,6 +525,10 @@ function av_decision!(agent, model)
         push!(model.AVs_time_series, model.AVs_time_series[end])
     end
 
+    if AV_decision
+        agent.transport_choice = 1
+    end
+
 end
 
 # RIDE-HAIL DECISION-MAKING # 
@@ -569,6 +573,10 @@ function rh_decision!(agent, model)
         push!(model.RH_trips_time_series, model.RH_trips_time_series[end])
     end
 
+    if RH_decision
+        agent.transport_choice = 6
+    end
+
 end
 
 
@@ -586,14 +594,12 @@ end
 
             
 
-model = initialize()
 
 
 # adata = [:pos, :transport_type, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_behavioural_intention, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
 # data, _ = run!(model, agent_step!, model_step!, 365; adata)
 
-# # Simulating the number of AVs and RHs over time
-# # Replace this with the real data from your model
+# # Simulating the number of AVs and RHs over time - interactive graph doesn't work
 
 # time_ticks = 1:91251
 
@@ -613,23 +619,36 @@ model = initialize()
 # # Show the plot
 # fig
 
-adata = [(:AVs_time_series, sum)]
-alabels = ["AVs over time"]
+
+
+
+
+using CairoMakie # using a different plotting backend that enables interactive plots
+using Statistics
+
 
 model = initialize()
 
-using GLMakie # using a different plotting backend that enables interactive plots
-
-figure, abmobs = abmexploration(
-    model;
-    agent_step!, model_step!, parange,
-    ac = groupcolor, am = groupmarker, as = 10,
-    adata, alabels
-)
+av_user(a) = (a.transport_choice == 1)
+rh_user(a) = (a.transport_choice == 6)
 
 
+avcount(model) = sum(model.AVs_time_series)
+steps = 500
+adata = [(av_user, count), (rh_user, count)]
+mdata = [avcount]
 
+adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
 
+function plot_population_timeseries(mdf)
+    figure = Figure(resolution = (600, 400))
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
+    av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
+    figure[1, 2] = Legend(figure, [av_population], ["AVs in population"])
+    figure
+end
+
+plot_population_timeseries(mdf)
 
 
 
