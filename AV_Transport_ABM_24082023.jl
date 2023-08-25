@@ -461,24 +461,24 @@ function model_step!(model)
     model.tick += 1
 
     if model.tick <= 25
-        model.av_threshold_model = 90
-        model.rh_threshold_model = 90
+        model.av_threshold_model = 4
+        model.rh_threshold_model = 4
     
     elseif model.tick > 20 && model.tick <= 50
-        model.av_threshold_model = 75
-        model.rh_threshold_model = 80
+        model.av_threshold_model = 3
+        model.rh_threshold_model = 3
 
     elseif model.tick > 50 && model.tick <= 75
-        model.av_threshold_model = 50
-        model.rh_threshold_model = 50
+        model.av_threshold_model = 2
+        model.rh_threshold_model = 2
     
     elseif model.tick > 75 && model.tick <= 90
-        model.av_threshold_model = 30
-        model.rh_threshold_model = 30
+        model.av_threshold_model = 1.5
+        model.rh_threshold_model = 1.5
 
     else 
-        model.av_threshold_model = 10
-        model.rh_threshold_model = 10
+        model.av_threshold_model = 1
+        model.rh_threshold_model = 1
     end
 
 end
@@ -596,8 +596,8 @@ end
 
 
 
-# adata = [:pos, :transport_type, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_behavioural_intention, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
-# data, _ = run!(model, agent_step!, model_step!, 365; adata)
+adata = [:pos, :transport_type, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_behavioural_intention, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
+data, _ = run!(model, agent_step!, model_step!, 365; adata)
 
 # # Simulating the number of AVs and RHs over time - interactive graph doesn't work
 
@@ -632,6 +632,9 @@ model = initialize()
 av_user(a) = (a.transport_choice == 1)
 rh_user(a) = (a.transport_choice == 6)
 
+print(model.AVs_time_series)
+print(model.RH_trips_time_series)
+
 
 avcount(model) = sum(model.AVs_time_series)
 rhcount(model) = sum(model.RH_trips_time_series)
@@ -641,18 +644,22 @@ mdata = [avcount, rhcount]
 
 adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
 
-function plot_population_timeseries(mdf)
+function plot_population_timeseries(adf)
     figure = Figure(resolution = (600, 400))
     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
-    av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
-    rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    figure[1, 2] = Legend(figure, [av_population, rh_population], ["AVs in population", "RH trips in population"])
+    av_agents = lines!(ax, adf.step, adf.count_av_user, color = :blue)
+    rh_agents = lines!(ax, adf.step, adf.count_rh_user, color = :green)
+    # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
+    # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
+    figure[1, 2] = Legend(figure, [av_agents, rh_agents], ["AVs in population", "RH trips in population"])
     figure
 end
 
-plot_population_timeseries(mdf)
+
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output4_25082023.csv" ,data)
 
 
+plot_population_timeseries(adf)
 
 
 
