@@ -637,8 +637,13 @@ using Statistics
 
 model = initialize()
 
+
 av_user(a) = (a.transport_choice == 1)
 rh_user(a) = (a.transport_choice == 6)
+car_user(a) = (a.transport_choice == 2)
+pt_user(a) = (a.transport_choice == 3)
+cyclist(a) = (a.transport_choice == 4)
+walker(a) = (a.transport_choice == 5)
 
 print(model.AVs_time_series)
 print(model.RH_trips_time_series)
@@ -647,7 +652,7 @@ print(model.RH_trips_time_series)
 avcount(model) = sum(model.AVs_time_series)
 rhcount(model) = sum(model.RH_trips_time_series)
 steps = 500
-adata = [(av_user, count), (rh_user, count)]
+adata = [(av_user, count), (rh_user, count), (car_user, count), (pt_user, count), (cyclist, count), (walker, count)]
 mdata = [avcount, rhcount]
 
 adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
@@ -657,14 +662,18 @@ function plot_population_timeseries(adf)
     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
     av_agents = lines!(ax, adf.step, adf.count_av_user, color = :blue)
     rh_agents = lines!(ax, adf.step, adf.count_rh_user, color = :green)
+    car_agents = lines!(ax, adf.step, adf.count_car_user, color = :purple)
+    pt_agents = lines!(ax, adf.step, adf.count_pt_user, color = :orange)
+    cyclist_agents = lines!(ax, adf.step, adf.count_cyclist, color = :red)
+    walker_agents = lines!(ax, adf.step, adf.count_walker, color = :pink)
     # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
     # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    figure[1, 2] = Legend(figure, [av_agents, rh_agents], ["AVs in population", "RH trips in population"])
+    figure[1, 2] = Legend(figure, [av_agents, rh_agents, car_agents, pt_agents, cyclist_agents, walker_agents], ["AVs", "RH users", "Car users", "Public transport", "Cyclists", "Walkers"])
     figure
 end
 
 
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output6_25082023.csv" ,data)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output7_25082023.csv" ,data)
 
 
 plot_population_timeseries(adf)
