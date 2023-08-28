@@ -490,8 +490,7 @@ model = initialize()
 
 function agent_step!(agent, model)
     update_near_public_transport(agent, model)
-    av_decision!(agent, model)
-    rh_decision!(agent, model)
+    consolidated_transport_decision!(agent, model)
     transport_choice!(agent, model)
     agent_health!(agent, model)
     # apply_rebate_after_purchase!(agent, model)
@@ -536,18 +535,8 @@ function update_near_public_transport(agent, model)
 end
 
 
-# OPTION 2 FOR REBATE - MORE VISIBLE TO Agents
-# This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
 
-AV_rebate_full_amount = 1000
-
-function apply_rebate!(agent, model, rebate_amount)
-    model.private_AV_cost -= rebate_amount # Reduce the cost of private AV by the rebate amount
-end
-
-
-
-# AV DECISION-MAKING # 
+# AV DECISION-MAKING USING THE THEORY OF PLANNED BEHAVIOUR # 
 function AV_TPB(av_attitudes, av_control_factors, av_social_norms, av_subjective_norm, av_faciliating_conditions, threshold)
     if false
         print("Facil Conditions: ", av_faciliating_conditions, " Sum: ", sum(av_attitudes)+sum(av_control_factors)+sum(av_social_norms)+sum(av_subjective_norm),
@@ -561,45 +550,7 @@ function AV_TPB(av_attitudes, av_control_factors, av_social_norms, av_subjective
     print(return)
 end
 
-function av_decision!(agent, model)
-    attitudes = agent.av_attitudes
-    control_behaviour = agent.av_cb_pos - 2*agent.av_cb_neg
-    # calculating social_norms
-    subjective_norms = 0
-    num_neighbors = 0
-    for neighbor in nearby_agents(agent, model)
-        subjective_norms = subjective_norms + neighbor.av_attitudes
-        num_neighbors = num_neighbors + 1
-    end
-    
-    #Taking the average
-    subjective_norms = num_neighbors==0 ? 0 : subjective_norms / num_neighbors
-
-    #Taking the average
-    descriptive_norms = model.AVs / model.total_agents
-
-
-    # REBATE POLICY OPTION 2:
-    # If a rebate policy with the full amount is being applied, included, ensure that the below code is activated:
-    apply_rebate!(agent, model, AV_rebate_full_amount)
-
-    facil_conditions = [agent.income > model.private_AV_cost]
-
-    AV_decision = AV_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.av_threshold_model)
-    
-    if AV_decision 
-        push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
-    else
-        push!(model.AVs_time_series, model.AVs_time_series[end])
-    end
-
-    if AV_decision
-        agent.transport_choice = 1
-    end
-
-end
-
-# RIDE-HAIL DECISION-MAKING # 
+# RIDE-HAIL DECISION-MAKING USING THE THEORY OF PLANNED BEHAVIOUR # 
 
 function RH_TPB(rh_attitudes, rh_control_factors, rh_social_norms, rh_subjective_norm, rh_faciliating_conditions, threshold)
     if false
@@ -616,75 +567,98 @@ end
 
 
 
-# POLICY 3: ASSIGNING FEES FOR SHORT RIDE-HAIL TRIPS
+# POLICIES: ASSIGNING FEES FOR SHORT RIDE-HAIL TRIPS AND TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
 # If the randomly generated trip for a ride-hail is a short distance, then there will be a 50% increase in price. 
 function assign_rh_trip_cost(agent_trip_distance, agent, model)
-    short_trip_threshold = 5 # You can adjust this value.
-    fee_amount = 5 # Example fee amount for short trips.
-    
-    trip_cost = model.rh_trip_cost + fee_amount
 
-    print("Price: $trip_cost")
+    trip_cost = model.rh_trip_cost # start with the default cost
+
+    # FEES FOR SHORT TRIPS 
+    short_trip_threshold = 5 # You can adjust this value.
+    short_trip_fee_amount = 5 # Example fee amount for short trips.
+
+    if agent_trip_distance <= short_trip_threshold
+        trip_cost += short_trip_fee_amount
+    end
+
+    # FEES FOR TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
+    nearby_public_transport_fee = 20
+
+    if agent.near_public_transport
+        trip_cost += nearby_public_transport_fee
+    end
+
+    # print("Price: $trip_cost")
     return trip_cost
 end
 
-function rh_decision!(agent, model)
-    attitudes = agent.rh_attitudes
-    control_behaviour = agent.rh_cb_pos - 2*agent.rh_cb_neg
+# POLICY: VISIBLE REBATE FOR AGENTS
+# This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
+
+AV_rebate_full_amount = 1000
+
+function apply_rebate!(agent, model, rebate_amount)
+
+    private_av_price = model.private_AV_cost - rebate_amount # Reduce the cost of private AV by the rebate amount
+
+    return private_av_price
+end
+
+
+function consolidated_transport_decision!(agent, model)
+    # Calculate AV Decision
+    av_attitudes = agent.av_attitudes
+    av_control_behaviour = agent.av_cb_pos - 2*agent.av_cb_neg
+#     # calculating social_norms
+    av_subjective_norms = 0
+    av_num_neighbors = 0
+    for av_neighbor in nearby_agents(agent, model)
+        agent_av_subjective_norms = av_subjective_norms + av_neighbor.av_attitudes
+        av_num_neighbors = av_num_neighbors + 1
+    end
+    
+    #Taking the average
+    av_subjective_norms = av_num_neighbors==0 ? 0 : av_subjective_norms / av_num_neighbors    
+
+    av_descriptive_norms = model.AVs / model.total_agents
+    # COMMENT THIS OUT TO TURN OFF THE REBATE POLICY
+    av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+    av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norms, av_facil_conditions, model.av_threshold_model)
+
+    # Calculate Ride-Hail Decision
+    rh_attitudes = agent.rh_attitudes
+    rh_control_behaviour = agent.rh_cb_pos - 2*agent.rh_cb_neg
+    rh_descriptive_norms = model.RH_trips / model.total_agents
     # calculating social_norms
-    subjective_norms = 0
-    num_neighbors = 0
-    for neighbor in nearby_agents(agent, model)
-        subjective_norms = subjective_norms + neighbor.rh_attitudes
-        num_neighbors = num_neighbors + 1
+    rh_subjective_norms = 0
+    rh_num_neighbors = 0
+    for rh_neighbor in nearby_agents(agent, model)
+        agent_rh_subjective_norms = rh_subjective_norms + rh_neighbor.rh_attitudes
+        rh_num_neighbors = rh_num_neighbors + 1
     end
     
-    # Taking the average
-    subjective_norms = num_neighbors == 0 ? 0 : subjective_norms / num_neighbors
-
-    # Taking the average
-    descriptive_norms = model.RH_trips / model.total_agents
-    
+    #Taking the average
+    rh_subjective_norms = rh_num_neighbors==0 ? 0 : rh_subjective_norms / rh_num_neighbors   
     agent_trip_distance = rand(1:20)
-
-    print("Trip distance: $agent_trip_distance")
-
-    # SHORT TRIP FEE POLICY IMPLEMENTED - ACTIVATE CODE BELOW #
-
-    if agent_trip_distance <= 5
-        facil_conditions = [(agent.income*0.001) > assign_rh_trip_cost(agent_trip_distance, agent, model)]
-    else
-        facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
-    end
-
-    # SHORT TRIP FEE POLICY NOT IMPLEMENTED - ACTIVATE CODE BELOW #
-
-    #facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
-
-    RH_decision = RH_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.rh_threshold_model)
-
-    if RH_decision 
+    # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
+    rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    # IF FEES FOR SHORT TRIPS POLICY IS NOT BEING IMPLEMENTED, ACTIVATE CODE BELOW: 
+    # rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+    rh_decision = RH_TPB(rh_attitudes, rh_control_behaviour, rh_subjective_norms, rh_descriptive_norms, rh_facil_conditions, model.rh_threshold_model)
+    
+    # Final Decision
+    # This is an example of a decision hierarchy - you can adjust as required.
+    if av_decision 
+        agent.transport_choice = 1
+        push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
+    elseif rh_decision
+        agent.transport_choice = 6
         push!(model.RH_trips_time_series, model.RH_trips_time_series[end] + 1)
     else
-        push!(model.RH_trips_time_series, model.RH_trips_time_series[end])
-    end
-
-    if RH_decision
-        agent.transport_choice = 6
-    end
-
-end
-
-
-
-
-function transport_choice!(agent, model)
-    if agent.transport_choice != 1 && agent.transport_choice != 6
         agent.transport_choice = agent.original_transport_type
     end
-
-
 end
+
 
 
 
@@ -699,11 +673,8 @@ function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 
     end
 end
 
-# POLICIES # 
 
-# FINANCIAL INCENTIVES FOR USING AN AV 
-
-# OPTION 1: 10% REBATE ON THE PURCHASE PRICE 
+# POLICY: 10% REBATE ON THE PURCHASE PRICE 
 # Note: the results from this do not change anything, as it does not change the perceived purchase price. Option 2 will address this. 
 
 const AV_REBATE = 0.1 # 10% rebate for using AV
@@ -714,9 +685,6 @@ function apply_rebate_after_purchase!(agent, model)
         agent.income += rebate_amount # Apply the rebate to the income
     end
 end
-
-
-            
 
 
 
@@ -771,6 +739,96 @@ end
 
 
 plot_population_timeseries(adf)
+
+# OLD DECISION FUNCTIONS 
+
+
+# function av_decision!(agent, model)
+#     attitudes = agent.av_attitudes
+#     control_behaviour = agent.av_cb_pos - 2*agent.av_cb_neg
+#     # calculating social_norms
+#     subjective_norms = 0
+#     num_neighbors = 0
+#     for neighbor in nearby_agents(agent, model)
+#         subjective_norms = subjective_norms + neighbor.av_attitudes
+#         num_neighbors = num_neighbors + 1
+#     end
+    
+#     #Taking the average
+#     subjective_norms = num_neighbors==0 ? 0 : subjective_norms / num_neighbors
+
+#     #Taking the average
+#     descriptive_norms = model.AVs / model.total_agents
+
+
+#     # REBATE POLICY OPTION 2:
+#     # If a rebate policy with the full amount is being applied, included, ensure that the below code is activated:
+#     apply_rebate!(agent, model, AV_rebate_full_amount)
+
+#     facil_conditions = [agent.income > model.private_AV_cost]
+
+#     AV_decision = AV_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.av_threshold_model)
+    
+#     if AV_decision 
+#         push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
+#     else
+#         push!(model.AVs_time_series, model.AVs_time_series[end])
+#     end
+
+#     if AV_decision
+#         agent.transport_choice = 1
+#     end
+
+# end
+
+
+
+# function rh_decision!(agent, model)
+#     attitudes = agent.rh_attitudes
+#     control_behaviour = agent.rh_cb_pos - 2*agent.rh_cb_neg
+#     # calculating social_norms
+#     subjective_norms = 0
+#     num_neighbors = 0
+#     for neighbor in nearby_agents(agent, model)
+#         subjective_norms = subjective_norms + neighbor.rh_attitudes
+#         num_neighbors = num_neighbors + 1
+#     end
+    
+#     # Taking the average
+#     subjective_norms = num_neighbors == 0 ? 0 : subjective_norms / num_neighbors
+
+#     # Taking the average
+#     descriptive_norms = model.RH_trips / model.total_agents
+    
+#     agent_trip_distance = rand(1:20)
+
+#     print("Trip distance: $agent_trip_distance")
+
+#     # SHORT TRIP FEE POLICY IMPLEMENTED - ACTIVATE CODE BELOW #
+
+#     if agent_trip_distance <= 5
+#         facil_conditions = [(agent.income*0.001) > assign_rh_trip_cost(agent_trip_distance, agent, model)]
+#     else
+#         facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+#     end
+
+#     # SHORT TRIP FEE POLICY NOT IMPLEMENTED - ACTIVATE CODE BELOW #
+
+#     #facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+
+#     RH_decision = RH_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.rh_threshold_model)
+
+#     if RH_decision 
+#         push!(model.RH_trips_time_series, model.RH_trips_time_series[end] + 1)
+#     else
+#         push!(model.RH_trips_time_series, model.RH_trips_time_series[end])
+#     end
+
+#     if RH_decision
+#         agent.transport_choice = 6
+#     end
+
+# end
 
 
 
