@@ -211,6 +211,9 @@ end
     rh_threshold::Float32
     rh_fee_applied::Bool
 
+    # Public transport layer 
+    near_public_transport::Bool
+
     #Additional cognitive factors 
     impulsivity::Float32
 
@@ -226,6 +229,14 @@ end
     physical_health_layer::Float32
     sedentary_behaviour::Float32
 end
+
+mutable struct PublicTransportAgent <: AbstractAgent
+    id::Int
+    pos::Tuple{Int, Int}
+    coverage_radius::Int
+    fee::Int
+end
+
 
 function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
     RH_trips_time_series = [0], rh_fee_applied = false)
@@ -273,6 +284,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_threshold = rand(model.rng)
         rh_fee_applied = false
 
+        #Public transport layer
+        near_public_transport = false
+
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
 
@@ -289,7 +303,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
 
     # Adding PT-using agents 
@@ -327,6 +341,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_threshold = rand(model.rng)
         rh_fee_applied = false
 
+        # Public transport layer
+        near_public_transport = false
+
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
 
@@ -343,7 +360,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
 
     # Adding cycling agents 
@@ -381,6 +398,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_threshold = rand(model.rng)
         rh_fee_applied = false
 
+        #Public transport layer 
+        near_public_transport = false
+
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
 
@@ -397,7 +417,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
 
     # Adding walking for transport agents 
@@ -435,6 +455,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_threshold = rand(model.rng)
         rh_fee_applied = false
 
+        #Public transport layer
+        near_public_transport = false
+
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
 
@@ -451,14 +474,22 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
     return model 
 end
 
+function init_public_transport_agents(model)
+    for _ in 1:model.num_public_transport_agents
+        add_agent!((rand(1:20), rand(1:20)), model, 3, 5)
+    end
+end
+
+
 model = initialize()
 
 function agent_step!(agent, model)
+    update_near_public_transport(agent, model)
     av_decision!(agent, model)
     rh_decision!(agent, model)
     transport_choice!(agent, model)
@@ -491,6 +522,19 @@ function model_step!(model)
     end
 
 end
+
+# Assign whether the agents are near public transport
+
+function update_near_public_transport(agent, model)
+    for pt_agent in nearby_agents(agent, model, 3)
+        if isa(pt_agent, PublicTransportAgent)
+            agent.near_public_transport = true
+            return
+        end
+    end
+    agent.near_public_transport = false
+end
+
 
 # OPTION 2 FOR REBATE - MORE VISIBLE TO Agents
 # This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
