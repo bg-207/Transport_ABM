@@ -228,10 +228,10 @@ end
 end
 
 function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
-    RH_trips_time_series = [0])
+    RH_trips_time_series = [0], rh_fee_applied = false)
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
-    properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents)
+    properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, :rh_fee_applied => false)
     model = AgentBasedModel(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly()
     )
 
@@ -503,8 +503,6 @@ end
 
 
 
-
-
 # AV DECISION-MAKING # 
 function AV_TPB(av_attitudes, av_control_factors, av_social_norms, av_subjective_norm, av_faciliating_conditions, threshold)
     if false
@@ -573,31 +571,17 @@ function RH_TPB(rh_attitudes, rh_control_factors, rh_social_norms, rh_subjective
 end
 
 
-function assign_trip_distance(agent)
-    if agent.transport_choice == 1 # AV
-        return rand(3:20) # Just an example; AVs might typically travel longer distances.
-    elseif agent.transport_choice == 2 # Car
-        return rand(4:20) # Cars also might have longer trip distances.
-    elseif agent.transport_choice == 4 # Cycling
-        return rand(1:7) # Bicyclists might typically go for shorter trips.
-    elseif agent.transport_choice == 5 # Walking
-        return rand(1:4) # Walking is usually the shortest mode of transport.
-    else
-        return rand(1:20) # A general case for any other transport type.
-    end
-end
 
-# POLICY 3: ASSIGNING FEES FOR SHORT TRIPS
-function apply_short_trip_fee(agent, model)
+# POLICY 3: ASSIGNING FEES FOR SHORT RIDE-HAIL TRIPS
+# If the randomly generated trip for a ride-hail is a short distance, then there will be a 50% increase in price. 
+function assign_rh_trip_cost(agent_trip_distance, agent, model)
     short_trip_threshold = 5 # You can adjust this value.
-    fee_amount = 10 # Example fee amount for short trips.
+    fee_amount = 5 # Example fee amount for short trips.
     
-    trip_distance = assign_trip_distance(agent)
-    
-    if trip_distance >= short_trip_threshold 
-        model.rh_trip_cost += fee_amount
-        model.rh_fee_applied = true
-    end
+    trip_cost = model.rh_trip_cost + fee_amount
+
+    print("Price: $trip_cost")
+    return trip_cost
 end
 
 function rh_decision!(agent, model)
@@ -617,11 +601,21 @@ function rh_decision!(agent, model)
     # Taking the average
     descriptive_norms = model.RH_trips / model.total_agents
     
-    agent_trip_distance = assign_trip_distance(agent)
+    agent_trip_distance = rand(1:20)
 
-    apply_short_trip_fee(agent, model)
+    print("Trip distance: $agent_trip_distance")
 
-    facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+    # SHORT TRIP FEE POLICY IMPLEMENTED - ACTIVATE CODE BELOW #
+
+    if agent_trip_distance <= 5
+        facil_conditions = [(agent.income*0.001) > assign_rh_trip_cost(agent_trip_distance, agent, model)]
+    else
+        facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+    end
+
+    # SHORT TRIP FEE POLICY NOT IMPLEMENTED - ACTIVATE CODE BELOW #
+
+    #facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
 
     RH_decision = RH_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.rh_threshold_model)
 
