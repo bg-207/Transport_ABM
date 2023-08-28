@@ -8,6 +8,8 @@ using GLMakie
 
 space = GridSpace((20, 20); periodic = false)
 
+
+Random.seed!(1234)
 #Helper functions
 
 # Right-skewed distribution
@@ -207,6 +209,7 @@ end
     rh_subjective_norm::Float32
     rh_facilitating_conditions::Float32
     rh_threshold::Float32
+    rh_fee_applied::Bool
 
     #Additional cognitive factors 
     impulsivity::Float32
@@ -268,6 +271,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_subjective_norm = rand(model.rng)
         rh_facilitating_conditions = rand(model.rng)
         rh_threshold = rand(model.rng)
+        rh_fee_applied = false
 
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
@@ -285,7 +289,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
 
     # Adding PT-using agents 
@@ -321,6 +325,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_subjective_norm = rand(model.rng)
         rh_facilitating_conditions = rand(model.rng)
         rh_threshold = rand(model.rng)
+        rh_fee_applied = false
 
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
@@ -338,7 +343,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
 
     # Adding cycling agents 
@@ -374,6 +379,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_subjective_norm = rand(model.rng)
         rh_facilitating_conditions = rand(model.rng)
         rh_threshold = rand(model.rng)
+        rh_fee_applied = false
 
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
@@ -391,7 +397,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
 
     # Adding walking for transport agents 
@@ -427,6 +433,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         rh_subjective_norm = rand(model.rng)
         rh_facilitating_conditions = rand(model.rng)
         rh_threshold = rand(model.rng)
+        rh_fee_applied = false
 
         #Additional cognitive factors 
         impulsivity = rand(model.rng)
@@ -444,9 +451,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         sedentary_behaviour = rand(model.rng)
 
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
-    return model
+    return model 
 end
 
 model = initialize()
@@ -456,6 +463,7 @@ function agent_step!(agent, model)
     rh_decision!(agent, model)
     transport_choice!(agent, model)
     agent_health!(agent, model)
+    # apply_rebate_after_purchase!(agent, model)
 end
 
 function model_step!(model)
@@ -483,6 +491,18 @@ function model_step!(model)
     end
 
 end
+
+# OPTION 2 FOR REBATE - MORE VISIBLE TO Agents
+# This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
+
+AV_rebate_full_amount = 1000
+
+function apply_rebate!(agent, model, rebate_amount)
+    model.private_AV_cost -= rebate_amount # Reduce the cost of private AV by the rebate amount
+end
+
+
+
 
 
 # AV DECISION-MAKING # 
@@ -516,6 +536,11 @@ function av_decision!(agent, model)
     #Taking the average
     descriptive_norms = model.AVs / model.total_agents
 
+
+    # REBATE POLICY OPTION 2:
+    # If a rebate policy with the full amount is being applied, included, ensure that the below code is activated:
+    apply_rebate!(agent, model, AV_rebate_full_amount)
+
     facil_conditions = [agent.income > model.private_AV_cost]
 
     AV_decision = AV_TPB(attitudes, control_behaviour, subjective_norms, descriptive_norms, facil_conditions, model.av_threshold_model)
@@ -547,6 +572,34 @@ function RH_TPB(rh_attitudes, rh_control_factors, rh_social_norms, rh_subjective
     print(return)
 end
 
+
+function assign_trip_distance(agent)
+    if agent.transport_choice == 1 # AV
+        return rand(3:20) # Just an example; AVs might typically travel longer distances.
+    elseif agent.transport_choice == 2 # Car
+        return rand(4:20) # Cars also might have longer trip distances.
+    elseif agent.transport_choice == 4 # Cycling
+        return rand(1:7) # Bicyclists might typically go for shorter trips.
+    elseif agent.transport_choice == 5 # Walking
+        return rand(1:4) # Walking is usually the shortest mode of transport.
+    else
+        return rand(1:20) # A general case for any other transport type.
+    end
+end
+
+# POLICY 3: ASSIGNING FEES FOR SHORT TRIPS
+function apply_short_trip_fee(agent, model)
+    short_trip_threshold = 5 # You can adjust this value.
+    fee_amount = 10 # Example fee amount for short trips.
+    
+    trip_distance = assign_trip_distance(agent)
+    
+    if trip_distance >= short_trip_threshold 
+        model.rh_trip_cost += fee_amount
+        model.rh_fee_applied = true
+    end
+end
+
 function rh_decision!(agent, model)
     attitudes = agent.rh_attitudes
     control_behaviour = agent.rh_cb_pos - 2*agent.rh_cb_neg
@@ -563,6 +616,10 @@ function rh_decision!(agent, model)
 
     # Taking the average
     descriptive_norms = model.RH_trips / model.total_agents
+    
+    agent_trip_distance = assign_trip_distance(agent)
+
+    apply_short_trip_fee(agent, model)
 
     facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
 
@@ -580,10 +637,14 @@ function rh_decision!(agent, model)
 
 end
 
+
+
+
 function transport_choice!(agent, model)
     if agent.transport_choice != 1 && agent.transport_choice != 6
         agent.transport_choice = agent.original_transport_type
     end
+
 
 end
 
@@ -600,34 +661,29 @@ function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 
     end
 end
 
+# POLICIES # 
+
+# FINANCIAL INCENTIVES FOR USING AN AV 
+
+# OPTION 1: 10% REBATE ON THE PURCHASE PRICE 
+# Note: the results from this do not change anything, as it does not change the perceived purchase price. Option 2 will address this. 
+
+const AV_REBATE = 0.1 # 10% rebate for using AV
+
+function apply_rebate_after_purchase!(agent, model)
+    if agent.transport_choice == 1 # If choice is AV
+        rebate_amount = model.private_AV_cost * AV_REBATE
+        agent.income += rebate_amount # Apply the rebate to the income
+    end
+end
+
+
             
 
 
 
 adata = [:pos, :transport_type, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_behavioural_intention, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
 data, _ = run!(model, agent_step!, model_step!, 365; adata)
-
-# # Simulating the number of AVs and RHs over time - interactive graph doesn't work
-
-# time_ticks = 1:91251
-
-# # Create a figure and axis for the plot
-# fig = Figure(resolution = (800, 400))
-# ax = Axis(fig[1, 1]; xlabel = "Time", ylabel = "Number")
-
-# lines!(ax, time_ticks, model.AVs_time_series, linewidth=2, color=:blue, label="AVs")
-# lines!(ax, time_ticks, model.RH_trips_time_series, linewidth=2, color=:red, label="RH Trips")
-
-# # Add labels to the axes
-# # Makie.xlabel!(ax, "Time")
-# # Makie.ylabel!(ax, "Number")
-# leg = Legend(fig[1, 2], ax)
-# fig[1, 2] = leg
-
-# # Show the plot
-# fig
-
-
 
 
 
@@ -673,7 +729,7 @@ function plot_population_timeseries(adf)
 end
 
 
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output7_25082023.csv" ,data)
+# CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output8_25082023.csv" ,data)
 
 
 plot_population_timeseries(adf)
