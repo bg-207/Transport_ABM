@@ -8,6 +8,9 @@ using GLMakie
 
 space = GridSpace((20, 20); periodic = false)
 
+abstract type AllAgents end
+
+
 
 Random.seed!(1234)
 #Helper functions
@@ -177,7 +180,7 @@ function generate_random_position(grid::GridSpace)
     return (x, y)
 end
 
-@agent TransportAgent GridAgent{2} begin
+@agent TransportAgent <: AllAgents GridAgent{2} begin
     #DEMOGRAPHICS 
     age::Int
     gender::Int
@@ -228,22 +231,37 @@ end
     # PHYSICAL HEALTH LAYER
     physical_health_layer::Float32
     sedentary_behaviour::Float32
+
 end
 
-mutable struct PublicTransportAgent <: AbstractAgent
-    id::Int
-    pos::Tuple{Int, Int}
+@agent PublicTransportAgent <: AllAgents GridAgent{2} begin
     coverage_radius::Int
     fee::Int
 end
 
+@agent PromotionAgent <: AllAgents GridAgent{2} begin
+    coverage_radius::Int
+end
+
+
+function init_public_transport_agents!(model)
+    for _ in 1:model.num_public_transport_agents
+        add_agent!(PublicTransportAgent, model, 3, 0)
+    end
+end
+
+function add_promotion_agents!(model)
+    for _ in 1:model.num_promotion_agents
+        add_agent!(PromotionAgent, model, 2)
+    end
+end
 
 function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
-    RH_trips_time_series = [0], rh_fee_applied = false)
+    RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 50)
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
-    properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, :rh_fee_applied => false)
-    model = AgentBasedModel(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly()
+    properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
+    model = ABM(AllAgents, space; properties = properties, rng, scheduler = Schedulers.Randomly()
     )
 
     # Adding the Agents
@@ -476,14 +494,13 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
 
         add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour)
     end 
+
+    init_public_transport_agents!(model)
+    add_promotion_agents!(model)
+
     return model 
 end
 
-function init_public_transport_agents(model)
-    for _ in 1:model.num_public_transport_agents
-        add_agent!((rand(1:20), rand(1:20)), model, 3, 5)
-    end
-end
 
 
 model = initialize()
@@ -491,7 +508,6 @@ model = initialize()
 function agent_step!(agent, model)
     update_near_public_transport(agent, model)
     consolidated_transport_decision!(agent, model)
-    transport_choice!(agent, model)
     agent_health!(agent, model)
     # apply_rebate_after_purchase!(agent, model)
 end
