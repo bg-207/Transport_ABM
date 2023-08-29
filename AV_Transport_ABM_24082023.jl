@@ -8,12 +8,6 @@ using GLMakie
 
 space = GridSpace((20, 20); periodic = false)
 
-abstract type AllAgents end
-
-
-
-Random.seed!(1234)
-#Helper functions
 
 # Right-skewed distribution
 function random_human_age()
@@ -245,24 +239,12 @@ end
 
 
 
-function init_public_transport_agents!(model)
-    for _ in 1:model.num_public_transport_agents
-        add_agent!(PublicTransportAgent, model, 3, 0)
-    end
-end
-
-function add_promotion_agents!(model)
-    for _ in 1:model.num_promotion_agents
-        add_agent!(PromotionAgent, model, 2)
-    end
-end
-
 function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
     RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 50)
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
     properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
-    model = ABM(Union{TransportAgent, PublicTransportAgent, PromotionAgent}, space; properties = properties, rng, scheduler = Schedulers.Randomly(), warn = false
+    model = ABM(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly(), warn = false
     )
 
     # Adding the Agents
@@ -713,8 +695,8 @@ end
 
 function update_near_public_transport(agent, model)
     for pt_agent in nearby_agents(agent, model, 3)
-        if isa(pt_agent, PublicTransportAgent)
-            agent.near_public_transport = true
+        if pt_agent.is_pt_agent == true
+            agent.near_public_transport = true 
             return
         end
     end
