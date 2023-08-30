@@ -174,7 +174,7 @@ function generate_random_position(grid::GridSpace)
     return (x, y)
 end
 
-@agent TransportAgent <: AllAgents GridAgent{2} begin
+@agent TransportAgent GridAgent{2} begin
     #DEMOGRAPHICS 
     age::Int
     gender::Int
@@ -244,8 +244,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
     properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
-    model = ABM(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly(), warn = false
-    )
+    model = ABM(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly())
 
     # Adding the Agents
 
@@ -585,7 +584,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
 
     # PROMOTION AGENTS 
 
-    for _ in 1:model.num_public_transport_agents
+    for _ in 1:model.num_promotion_agents
         #DEMOGRAPHICS
         age = random_human_age()
         gender = random_human_gender()
@@ -790,8 +789,17 @@ function consolidated_transport_decision!(agent, model)
     av_subjective_norms = av_num_neighbors==0 ? 0 : av_subjective_norms / av_num_neighbors    
 
     av_descriptive_norms = model.AVs / model.total_agents
+
     # COMMENT THIS OUT TO TURN OFF THE REBATE POLICY
-    av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+    # AVs not implemented yet code:
+    if model.tick >= 200
+        av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+    else
+        av_facil_conditions = [agent.income > model.private_AV_cost]
+    end
+    # AVs implemented from the start code:
+    # av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+
     av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norms, av_facil_conditions, model.av_threshold_model)
 
     # Calculate Ride-Hail Decision
@@ -810,7 +818,17 @@ function consolidated_transport_decision!(agent, model)
     rh_subjective_norms = rh_num_neighbors==0 ? 0 : rh_subjective_norms / rh_num_neighbors   
     agent_trip_distance = rand(1:20)
     # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
+    # Implementation of short trips and nearby public transport fees policies after x steps:
+    # if model.tick >= 200
+    #     rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    # else
+    #     rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost] 
+    # end
+
+    # If fees policies for RH are applied from the start: 
+
     rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+
     # IF FEES FOR SHORT TRIPS POLICY IS NOT BEING IMPLEMENTED, ACTIVATE CODE BELOW: 
     # rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
     rh_decision = RH_TPB(rh_attitudes, rh_control_behaviour, rh_subjective_norms, rh_descriptive_norms, rh_facil_conditions, model.rh_threshold_model)
@@ -829,7 +847,7 @@ function consolidated_transport_decision!(agent, model)
 end
 
 
-
+# ORIGINAL AGENT HEALTH CODE 
 
 function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Cycling,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
     if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
@@ -841,6 +859,41 @@ function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 
         end
     end
 end
+
+# IF USING A SIGMOID FUNCTION 
+
+# function sigmoid(x)
+#     return 1 / (1 + exp(-x))
+# end
+
+# function agent_health!(agent, model)
+#     if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
+#         if agent.original_transport_type != agent.transport_type == 1
+#             increment = 0.1 * sigmoid(agent.sedentary_behaviour - 5)  # adjust the '5' based on your specific scenario
+#             agent.sedentary_behaviour += increment
+#             agent.physical_health_layer -= 0.01  # Adjust this value based on how you'd like health to decay
+#         end
+#     end
+# end
+
+# EXPONENTIAL FUNCTION
+
+# function exponential_increase(x, a=0.1, b=0.2)
+#     return a * exp(b * x)
+# end
+
+# function agent_health!(agent, model)
+#     # Check if original transport type was either cycling or walking
+#     if agent.original_transport_type == 4 || agent.original_transport_type == 5
+#         # Check if current transport choice is AV, Car, or RideHailApp
+#         if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
+#             # Increase sedentary behavior based on the exponential function
+#             increment = exponential_increase(agent.sedentary_behaviour)
+#             agent.sedentary_behaviour += increment
+#             agent.physical_health_layer -= 0.01  # Adjust this value for health decay if necessary
+#         end
+#     end
+# end
 
 
 # POLICY: 10% REBATE ON THE PURCHASE PRICE 
@@ -867,6 +920,8 @@ using Statistics
 
 
 model = initialize()
+
+# GRAPH NUMBER 1: TRANSPORT CHOICES 
 
 
 av_user(a) = (a.transport_choice == 1)
@@ -906,8 +961,30 @@ end
 
 # CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output8_25082023.csv" ,data)
 
-
+# Plot first graph: 
 plot_population_timeseries(adf)
+
+# GRAPH NUMBER 2: PLOT HEALTH OUTCOMES 
+
+# sedentary_behaviour_plot(a) = (a.sedentary_behaviour)
+
+# sedentar(model) = sum(model.AVs_time_series)
+# rhcount(model) = sum(model.RH_trips_time_series)
+# steps = 500
+# adata = [(sedentary_behaviour_plot, mean)]
+# mdata = [avcount, rhcount]
+
+# adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
+
+# function plot_population_health(adf)
+#     figure = Figure(resolution = (600, 400))
+#     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
+#     sedentary_agent_plot_1 = lines!(ax, adf.step, adf.mean_sedentary_behaviour_plot, color = :blue)
+#     figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Sedentary behaviour"])
+#     figure
+# end
+
+# plot_population_health(adf)
 
 # OLD DECISION FUNCTIONS 
 
