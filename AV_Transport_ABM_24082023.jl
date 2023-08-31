@@ -234,7 +234,7 @@ end
     # PROMOTION AGENT 
     is_promotion_agent::Bool
     promotion_coverage_radius::Int
-    promotion_agent_efficacy::Int
+    av_advertising_efficacy::Int
 
 end
 
@@ -311,9 +311,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
-        promotion_agent_efficacy = 0
+        av_advertising_efficacy = 0
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy)
     end 
 
     # Adding PT-using agents 
@@ -377,9 +377,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
-        promotion_agent_efficacy = 0
+        av_advertising_efficacy = 0
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy)
     end 
 
     # Adding cycling agents 
@@ -443,9 +443,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
-        promotion_agent_efficacy = 0
+        av_advertising_efficacy = 0
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy)
     end 
 
     # Adding walking for transport agents 
@@ -510,10 +510,10 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
-        promotion_agent_efficacy = 0
+        av_advertising_efficacy = 0
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
-    end 
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy)
+    end  
 
     # PUBLIC TRANSPORT AGENTS 
 
@@ -578,9 +578,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
-        promotion_agent_efficacy = 0
+        av_advertising_efficacy = 0
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy)
     end 
 
     # PROMOTION AGENTS 
@@ -646,9 +646,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = true 
         promotion_coverage_radius = 2
-        promotion_agent_efficacy = 1
+        av_advertising_efficacy = 1
 
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy)
     end 
     return model 
 end
@@ -772,9 +772,22 @@ function apply_rebate!(agent, model, rebate_amount)
     return private_av_price
 end
 
+# POLICY: PROMOTION OF AUTONOMOUS VEHICLES 
+
+function av_promotion_policy!(agent, model)
+    for av_promotion_agent in nearby_agents(agent, model, 3)
+        if av_promotion_agent.is_promotion_agent == true
+            agent.av_attitudes + av_promotion_agent.av_advertising_efficacy 
+        end
+    end
+end
+
 
 function consolidated_transport_decision!(agent, model)
     # Calculate AV Decision
+    # POLICY OPTION: AV PROMOTION VIA ADVERTISING 
+    av_promotion_policy!(agent, model)
+    
     av_attitudes = agent.av_attitudes
     av_control_behaviour = agent.av_cb_pos - 2*agent.av_cb_neg
 #     # calculating social_norms
