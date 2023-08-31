@@ -234,12 +234,13 @@ end
     # PROMOTION AGENT 
     is_promotion_agent::Bool
     promotion_coverage_radius::Int
+    promotion_agent_efficacy::Int
 
 end
 
 
 
-function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 20000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
+function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 50000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
     RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 50)
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
@@ -310,9 +311,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
+        promotion_agent_efficacy = 0
 
-
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
     end 
 
     # Adding PT-using agents 
@@ -376,9 +377,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
+        promotion_agent_efficacy = 0
 
-
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
     end 
 
     # Adding cycling agents 
@@ -442,9 +443,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
+        promotion_agent_efficacy = 0
 
-
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
     end 
 
     # Adding walking for transport agents 
@@ -509,9 +510,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
+        promotion_agent_efficacy = 0
 
-
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
     end 
 
     # PUBLIC TRANSPORT AGENTS 
@@ -577,9 +578,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = false 
         promotion_coverage_radius = 0
+        promotion_agent_efficacy = 0
 
-
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
     end 
 
     # PROMOTION AGENTS 
@@ -645,11 +646,10 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = true 
         promotion_coverage_radius = 2
+        promotion_agent_efficacy = 1
 
-
-        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius)
+        add_agent!(TransportAgent, model, age, gender, education, employment, income, original_transport_type, transport_type, transport_choice, av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold, rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied, near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg, physical_health_layer, sedentary_behaviour, is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, promotion_agent_efficacy)
     end 
-
     return model 
 end
 
@@ -668,24 +668,24 @@ function model_step!(model)
     model.tick += 1
 
     if model.tick <= 25
-        model.av_threshold_model = 4
-        model.rh_threshold_model = 4
-    
-    elseif model.tick > 20 && model.tick <= 50
-        model.av_threshold_model = 3
-        model.rh_threshold_model = 3
-
-    elseif model.tick > 50 && model.tick <= 75
         model.av_threshold_model = 2
         model.rh_threshold_model = 2
     
-    elseif model.tick > 75 && model.tick <= 90
+    elseif model.tick > 20 && model.tick <= 50
         model.av_threshold_model = 1.5
         model.rh_threshold_model = 1.5
 
-    else 
+    elseif model.tick > 50 && model.tick <= 75
+        model.av_threshold_model = 1.2
+        model.rh_threshold_model = 1.2
+    
+    elseif model.tick > 75 && model.tick <= 90
         model.av_threshold_model = 1
         model.rh_threshold_model = 1
+
+    else 
+        model.av_threshold_model = 0.5
+        model.rh_threshold_model = 0.5
     end
 
 end
@@ -750,7 +750,7 @@ function assign_rh_trip_cost(agent_trip_distance, agent, model)
     end
 
     # FEES FOR TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
-    nearby_public_transport_fee = 20
+    nearby_public_transport_fee = 10
 
     if agent.near_public_transport
         trip_cost += nearby_public_transport_fee
@@ -763,7 +763,7 @@ end
 # POLICY: VISIBLE REBATE FOR AGENTS
 # This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
 
-AV_rebate_full_amount = 1000
+AV_rebate_full_amount = 5000
 
 function apply_rebate!(agent, model, rebate_amount)
 
@@ -792,13 +792,13 @@ function consolidated_transport_decision!(agent, model)
 
     # COMMENT THIS OUT TO TURN OFF THE REBATE POLICY
     # AVs not implemented yet code:
-    if model.tick >= 200
-        av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
-    else
-        av_facil_conditions = [agent.income > model.private_AV_cost]
-    end
+    # if model.tick >= 200
+    #     av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+    # else
+    #     av_facil_conditions = [agent.income > model.private_AV_cost]
+    # end
     # AVs implemented from the start code:
-    # av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+    av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
 
     av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norms, av_facil_conditions, model.av_threshold_model)
 
@@ -819,15 +819,15 @@ function consolidated_transport_decision!(agent, model)
     agent_trip_distance = rand(1:20)
     # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
     # Implementation of short trips and nearby public transport fees policies after x steps:
-    # if model.tick >= 200
-    #     rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
-    # else
-    #     rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost] 
-    # end
+    if model.tick >= 150
+        rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    else
+        rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost] 
+    end
 
     # If fees policies for RH are applied from the start: 
 
-    rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    #rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
 
     # IF FEES FOR SHORT TRIPS POLICY IS NOT BEING IMPLEMENTED, ACTIVATE CODE BELOW: 
     # rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
@@ -849,13 +849,22 @@ end
 
 # ORIGINAL AGENT HEALTH CODE 
 
+# function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Cycling,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
+#     if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
+#         if agent.original_transport_type == 2
+#             agent.sedentary_behaviour = agent.sedentary_behaviour
+#         else 
+#             agent.sedentary_behaviour += 0.1
+#             agent.physical_health_layer -= 0.01
+#         end
+#     end
+# end
+
 function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Cycling,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-    if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
-        if agent.original_transport_type == 2
-            agent.sedentary_behaviour = agent.sedentary_behaviour
-        else 
-            agent.sedentary_behaviour += 0.1
-            agent.physical_health_layer -= 0.01
+    if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5
+        if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
+            agent.sedentary_behaviour += 1
+            agent.physical_health_layer -= 1
         end
     end
 end
@@ -937,6 +946,8 @@ print(model.RH_trips_time_series)
 
 avcount(model) = sum(model.AVs_time_series)
 rhcount(model) = sum(model.RH_trips_time_series)
+
+
 steps = 500
 adata = [(av_user, count), (rh_user, count), (car_user, count), (pt_user, count), (cyclist, count), (walker, count)]
 mdata = [avcount, rhcount]
@@ -959,32 +970,45 @@ function plot_population_timeseries(adf)
 end
 
 
-# CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output8_25082023.csv" ,data)
+# CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output3_30082023.csv" ,data)
 
 # Plot first graph: 
 plot_population_timeseries(adf)
 
 # GRAPH NUMBER 2: PLOT HEALTH OUTCOMES 
 
-# sedentary_behaviour_plot(a) = (a.sedentary_behaviour)
+# using DataFrames
 
-# sedentar(model) = sum(model.AVs_time_series)
+# travel_agents(a) = (a.is_promotion_agent == false) && (a.is_pt_agent == false)
+# sedentary_behaviour_plot(travel_agents) = (travel_agents.sedentary_behaviour) 
+
+
+# sedentary(model) = sum(model.AVs_time_series)
 # rhcount(model) = sum(model.RH_trips_time_series)
+
 # steps = 500
 # adata = [(sedentary_behaviour_plot, mean)]
 # mdata = [avcount, rhcount]
+
 
 # adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
 
 # function plot_population_health(adf)
 #     figure = Figure(resolution = (600, 400))
-#     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
+#     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Sedentary behaviour")
 #     sedentary_agent_plot_1 = lines!(ax, adf.step, adf.mean_sedentary_behaviour_plot, color = :blue)
 #     figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Sedentary behaviour"])
 #     figure
 # end
 
+# CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output3_31082023.csv" ,adf)
+
 # plot_population_health(adf)
+
+
+
+
+
 
 # OLD DECISION FUNCTIONS 
 
