@@ -1004,7 +1004,33 @@ function RH_TPB(rh_attitudes, rh_control_factors, rh_social_norms, rh_subjective
     print(return)
 end
 
+function walking_TBP(walking_attitudes, walking_control_factors, walking_social_norms, walking_subjective_norm, walking_facilitating_conditions, walking_threshold)
+    if false
+        print("Facil Conditions: ", walking_facilitating_conditions, " Sum: ", sum(walking_attitudes)+sum(walking_control_factors)+sum(walking_social_norms)+sum(walking_subjective_norm),
+            " Threshold: ", walking_threshold, "\n")
+    end 
+    return all(walking_facilitating_conditions) &&
+        sum(walking_attitudes)+
+        sum(walking_control_factors)+
+        sum(walking_social_norms)+
+        sum(walking_subjective_norm) > walking_threshold
+    print(return)
+    end
+end
 
+function cycling_TBP(cycling_attitudes, cycling_control_factors, cycling_social_norms, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold)
+    if false
+        print("Facil Conditions: ", cycling_facilitating_conditions, " Sum: ", sum(cycling_attitudes)+sum(cycling_control_factors)+sum(cycling_social_norms)+sum(cycling_subjective_norm),
+            " Threshold: ", cycling_threshold, "\n")
+    end 
+    return all(cycling_facilitating_conditions) &&
+        sum(cycling_attitudes)+
+        sum(cycling_control_factors)+
+        sum(cycling_social_norms)+
+        sum(cycling_subjective_norm) > cycling_threshold
+    print(return)
+    end
+end
 
 # POLICIES: ASSIGNING FEES FOR SHORT RIDE-HAIL TRIPS AND TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
 # If the randomly generated trip for a ride-hail is a short distance, then there will be a 50% increase in price. 
