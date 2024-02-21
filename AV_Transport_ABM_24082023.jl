@@ -235,14 +235,14 @@ end
     is_promotion_agent::Bool
     promotion_coverage_radius::Int
     av_advertising_efficacy::Int
-    pt_active_transport_advertising_efficacy::Int
+    pt_active_transport_advertising_efficacy::Float64
 
     # COGNITIVE LAYER FOR WALKING 
     #Theory of planned behaviour
     walking_attitudes::Float32
     walking_social_norms::Float32
     walking_control_factors::Float32
-    walking_behavioural_intention = 0
+    walking_behavioural_intention::Float32
     walking_subjective_norm::Float32
     walking_facilitating_conditions::Float32
     walking_threshold::Float32
@@ -252,7 +252,7 @@ end
     cycling_attitudes::Float32
     cycling_social_norms::Float32
     cycling_control_factors::Float32
-    cycling_behavioural_intention = 0
+    cycling_behavioural_intention::Float32
     cycling_subjective_norm::Float32
     cycling_facilitating_conditions::Float32
     cycling_threshold::Float32
@@ -269,14 +269,13 @@ end
 
 
 
-function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost = 50000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
+function initialize(; total_agents = 250, test_agents = 2, griddims = (20, 20), private_AV_cost = 50000, rh_trip_cost = 10, seed = 100, av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
     RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 50)
     rng = MersenneTwister(seed)
     space = GridSpace(griddims, periodic = false)
     properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
     model = ABM(TransportAgent, space; properties = properties, rng, scheduler = Schedulers.Randomly())
 
-    # Adding the Agents
 
     # Adding car-driving agents
     for n in 1:total_agents*0.6
@@ -449,6 +448,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         is_promotion_agent = false 
         promotion_coverage_radius = 0
         av_advertising_efficacy = 0
+        pt_active_transport_advertising_efficacy = 0
 
         #COGNITIVE LAYER - WALKING
         #Theory of planned behaviour
@@ -1015,7 +1015,6 @@ function walking_TBP(walking_attitudes, walking_control_factors, walking_social_
         sum(walking_social_norms)+
         sum(walking_subjective_norm) > walking_threshold
     print(return)
-    end
 end
 
 function cycling_TBP(cycling_attitudes, cycling_control_factors, cycling_social_norms, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold)
@@ -1029,7 +1028,6 @@ function cycling_TBP(cycling_attitudes, cycling_control_factors, cycling_social_
         sum(cycling_social_norms)+
         sum(cycling_subjective_norm) > cycling_threshold
     print(return)
-    end
 end
 
 # POLICIES: ASSIGNING FEES FOR SHORT RIDE-HAIL TRIPS AND TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
@@ -1409,6 +1407,9 @@ plot_population_timeseries(adf)
 #     end
 
 # end
+
+
+
 
 
 
