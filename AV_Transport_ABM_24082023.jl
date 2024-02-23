@@ -174,6 +174,26 @@ function generate_random_position(grid::GridSpace)
     return (x, y)
 end
 
+function transport_probability()
+    rand_num = rand()
+    if rand_num < 0.58
+        return 2 # Private car
+    elseif rand_num < 0.78
+        return 3 # Public transport
+    elseif rand_num < 0.90
+        return 4 # Personal micromobility 
+    elseif rand_num < 0.98
+        return 5 # Cycling
+    elseif rand_num < 0.99
+        return 6 # Walking
+    elseif rand_num < 1.0
+        return 7 # Automated Ride-hail
+    else
+        return 1 # AVs
+    end
+end
+
+
 @agent TransportAgent GridAgent{2} begin
     #DEMOGRAPHICS 
     age::Int
@@ -183,7 +203,7 @@ end
     income::Int
 
     #TRANSPORT LAYER
-    original_transport_type ::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
+    original_transport_type ::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = Automated ride-hail
     transport_type::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking 
     transport_choice::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app BUT ALL START WITH 0. 
 
@@ -279,7 +299,7 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
     # Adding the Agents
 
     # Adding car-driving agents
-    for n in 1:total_agents*0.75
+    for n in 1:total_agents
 
         #DEMOGRAPHICS
         age = random_human_age()
@@ -289,9 +309,9 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         income = generate_income(age, gender, education, employment)
 
         #TRANSPORT LAYER
-        original_transport_type = 2 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0.
-        transport_type = 2 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
-        transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
+        original_transport_type = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = Automated ride-hail
+        transport_type = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
+        transport_choice = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
 
         #COGNITIVE LAYER - AUTONOMOUS VEHICLES
         #Theory of planned behaviour
@@ -372,436 +392,6 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         cycling_cb_neg = rand(model.rng)
 
 
-
-        add_agent!(
-            TransportAgent, model, age, gender, education, employment, income,
-            original_transport_type, transport_type, transport_choice,
-            av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-            rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
-            near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
-            physical_health_layer, sedentary_behaviour,
-            is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
-            walking_attitudes, walking_social_norms, walking_control_factors, walking_behavioural_intention, walking_subjective_norm, walking_facilitating_conditions, walking_threshold,
-            cycling_attitudes, cycling_social_norms, cycling_control_factors, cycling_behavioural_intention, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold,
-            walking_cb_pos, walking_cb_neg, cycling_cb_pos, cycling_cb_neg
-        )
-    end
-
-    # Adding PT-using agents 
-    for n in 1:total_agents*0.09
-        #DEMOGRAPHICS
-        age = random_human_age()
-        gender = random_human_gender()
-        education = random_australian_education(age)
-        employment = random_australian_employment(age)
-        income = generate_income(age, gender, education, employment)
-
-        #TRANSPORT LAYER
-        original_transport_type = 3 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0.
-        transport_type = 3 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
-        transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-
-        #COGNITIVE LAYER - AUTONOMOUS VEHICLES
-        #Theory of planned behaviour
-        av_attitudes = rand(model.rng)
-        av_social_norms = rand(model.rng)
-        av_control_factors = rand(model.rng)
-        av_behavioural_intention = 0
-        av_subjective_norm = rand(model.rng)
-        av_facilitating_conditions = rand(model.rng)
-        av_threshold = rand(model.rng)
-
-        #COGNITIVE LAYER - AUTONOMOUS RIDE-HAIL APPS
-        #Theory of planned behaviour
-        rh_attitudes = rand(model.rng)
-        rh_social_norms = rand(model.rng)
-        rh_control_factors = rand(model.rng)
-        rh_behavioural_intention = 0
-        rh_subjective_norm = rand(model.rng)
-        rh_facilitating_conditions = rand(model.rng)
-        rh_threshold = rand(model.rng)
-        rh_fee_applied = false
-
-        # Public transport layer
-        near_public_transport = false
-
-        #Additional cognitive factors 
-        impulsivity = rand(model.rng)
-
-        # Control behaviours - AV 
-        av_cb_pos = rand(model.rng)
-        av_cb_neg = rand(model.rng)
-
-        # Control behaviours - RH
-        rh_cb_pos = rand(model.rng)
-        rh_cb_neg = rand(model.rng)
-
-        # PHYSICAL HEALTH LAYER
-        physical_health_layer = rand(model.rng)
-        sedentary_behaviour = rand(model.rng)
-
-        # PUBLIC TRANSPORT AGENTS 
-        is_pt_agent = false
-        pt_coverage_radius = 0 
-        fee = 0
-
-        #  PROMOTION AGENT 
-        is_promotion_agent = false 
-        promotion_coverage_radius = 0
-        av_advertising_efficacy = 0
-        pt_active_transport_advertising_efficacy = 0
-
-        #COGNITIVE LAYER - WALKING
-        #Theory of planned behaviour
-        walking_attitudes = rand(model.rng)
-        walking_social_norms = rand(model.rng)
-        walking_control_factors = rand(model.rng)
-        walking_behavioural_intention = 0
-        walking_subjective_norm = rand(model.rng)
-        walking_facilitating_conditions = rand(model.rng)
-        walking_threshold = rand(model.rng)
-
-        #COGNITIVE LAYER - CYCLING
-        #Theory of planned behaviour
-        cycling_attitudes = rand(model.rng)
-        cycling_social_norms = rand(model.rng)
-        cycling_control_factors = rand(model.rng)
-        cycling_behavioural_intention = 0
-        cycling_subjective_norm = rand(model.rng)
-        cycling_facilitating_conditions = rand(model.rng)
-        cycling_threshold = rand(model.rng)
-
-        # Control behaviours - Walking
-        walking_cb_pos = rand(model.rng)
-        walking_cb_neg = rand(model.rng)
-
-        # Control behaviours - Cycling
-        cycling_cb_pos = rand(model.rng)
-        cycling_cb_neg = rand(model.rng)
-
-        add_agent!(
-            TransportAgent, model, age, gender, education, employment, income,
-            original_transport_type, transport_type, transport_choice,
-            av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-            rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
-            near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
-            physical_health_layer, sedentary_behaviour,
-            is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
-            walking_attitudes, walking_social_norms, walking_control_factors, walking_behavioural_intention, walking_subjective_norm, walking_facilitating_conditions, walking_threshold,
-            cycling_attitudes, cycling_social_norms, cycling_control_factors, cycling_behavioural_intention, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold,
-            walking_cb_pos, walking_cb_neg, cycling_cb_pos, cycling_cb_neg
-        )
-    end
-
-    # NO CYCLING AGENTS WITH PRIMARY TRANSPORT MODE AS CYCLING IN THE SURVEY
-
-    # # Adding cycling agents 
-    # for n in 1:total_agents*0.1
-    #     #DEMOGRAPHICS
-    #     age = random_human_age()
-    #     gender = random_human_gender()
-    #     education = random_australian_education(age)
-    #     employment = random_australian_employment(age)
-    #     income = generate_income(age, gender, education, employment)
-
-    #     #TRANSPORT LAYER
-    #     original_transport_type = 4 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0.
-    #     transport_type = 4 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
-    #     transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-
-    #     #COGNITIVE LAYER - AUTONOMOUS VEHICLES
-    #     #Theory of planned behaviour
-    #     av_attitudes = rand(model.rng)
-    #     av_social_norms = rand(model.rng)
-    #     av_control_factors = rand(model.rng)
-    #     av_behavioural_intention = 0
-    #     av_subjective_norm = rand(model.rng)
-    #     av_facilitating_conditions = rand(model.rng)
-    #     av_threshold = rand(model.rng)
-
-    #     #COGNITIVE LAYER - AUTONOMOUS RIDE-HAIL APPS
-    #     #Theory of planned behaviour
-    #     rh_attitudes = rand(model.rng)
-    #     rh_social_norms = rand(model.rng)
-    #     rh_control_factors = rand(model.rng)
-    #     rh_behavioural_intention = 0
-    #     rh_subjective_norm = rand(model.rng)
-    #     rh_facilitating_conditions = rand(model.rng)
-    #     rh_threshold = rand(model.rng)
-    #     rh_fee_applied = false
-
-    #     #Public transport layer 
-    #     near_public_transport = false
-
-    #     #Additional cognitive factors 
-    #     impulsivity = rand(model.rng)
-
-    #     # Control behaviours - AV 
-    #     av_cb_pos = rand(model.rng)
-    #     av_cb_neg = rand(model.rng)
-        
-    #     # Control behaviours - RH
-    #     rh_cb_pos = rand(model.rng)
-    #     rh_cb_neg = rand(model.rng)
-
-    #     # PHYSICAL HEALTH LAYER
-    #     physical_health_layer = rand(model.rng)
-    #     sedentary_behaviour = rand(model.rng)
-
-    #     # PUBLIC TRANSPORT AGENTS 
-    #     is_pt_agent = false
-    #     pt_coverage_radius = 0 
-    #     fee = 0
-
-    #     #  PROMOTION AGENT 
-    #     is_promotion_agent = false 
-    #     promotion_coverage_radius = 0
-    #     av_advertising_efficacy = 0
-    #     pt_active_transport_advertising_efficacy = 0
-
-    #     #COGNITIVE LAYER - WALKING
-    #     #Theory of planned behaviour
-    #     walking_attitudes = rand(model.rng)
-    #     walking_social_norms = rand(model.rng)
-    #     walking_control_factors = rand(model.rng)
-    #     walking_behavioural_intention = 0
-    #     walking_subjective_norm = rand(model.rng)
-    #     walking_facilitating_conditions = rand(model.rng)
-    #     walking_threshold = rand(model.rng)
-
-    #     #COGNITIVE LAYER - CYCLING
-    #     #Theory of planned behaviour
-    #     cycling_attitudes = rand(model.rng)
-    #     cycling_social_norms = rand(model.rng)
-    #     cycling_control_factors = rand(model.rng)
-    #     cycling_behavioural_intention = 0
-    #     cycling_subjective_norm = rand(model.rng)
-    #     cycling_facilitating_conditions = rand(model.rng)
-    #     cycling_threshold = rand(model.rng)
-
-    #     # Control behaviours - Walking
-    #     walking_cb_pos = rand(model.rng)
-    #     walking_cb_neg = rand(model.rng)
-
-    #     # Control behaviours - Cycling
-    #     cycling_cb_pos = rand(model.rng)
-    #     cycling_cb_neg = rand(model.rng)
-
-    #     add_agent!(
-    #         TransportAgent, model, age, gender, education, employment, income,
-    #         original_transport_type, transport_type, transport_choice,
-    #         av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-    #         rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
-    #         near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
-    #         physical_health_layer, sedentary_behaviour,
-    #         is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
-    #         walking_attitudes, walking_social_norms, walking_control_factors, walking_behavioural_intention, walking_subjective_norm, walking_facilitating_conditions, walking_threshold,
-    #         cycling_attitudes, cycling_social_norms, cycling_control_factors, cycling_behavioural_intention, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold,
-    #         walking_cb_pos, walking_cb_neg, cycling_cb_pos, cycling_cb_neg
-    #     )
-    # end
-
-
-    # Adding walking for transport agents 
-    for n in 1:total_agents*0.14
-        #DEMOGRAPHICS
-        age = random_human_age()
-        gender = random_human_gender()
-        education = random_australian_education(age)
-        employment = random_australian_employment(age)
-        income = generate_income(age, gender, education, employment)
-
-        #TRANSPORT LAYER
-        original_transport_type = 5 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0.
-        transport_type = 5 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
-        transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-
-        #COGNITIVE LAYER - AUTONOMOUS VEHICLES
-        #Theory of planned behaviour
-        av_attitudes = rand(model.rng)
-        av_social_norms = rand(model.rng)
-        av_control_factors = rand(model.rng)
-        av_behavioural_intention = 0
-        av_subjective_norm = rand(model.rng)
-        av_facilitating_conditions = rand(model.rng)
-        av_threshold = rand(model.rng)
-
-        #COGNITIVE LAYER - AUTONOMOUS RIDE-HAIL APPS
-        #Theory of planned behaviour
-        rh_attitudes = rand(model.rng)
-        rh_social_norms = rand(model.rng)
-        rh_control_factors = rand(model.rng)
-        rh_behavioural_intention = 0
-        rh_subjective_norm = rand(model.rng)
-        rh_facilitating_conditions = rand(model.rng)
-        rh_threshold = rand(model.rng)
-        rh_fee_applied = false
-
-        #Public transport layer
-        near_public_transport = false
-
-        #Additional cognitive factors 
-        impulsivity = rand(model.rng)
-
-        # Control behaviours - AV 
-        av_cb_pos = rand(model.rng)
-        av_cb_neg = rand(model.rng)
-
-        # Control behaviours - RH
-        rh_cb_pos = rand(model.rng)
-        rh_cb_neg = rand(model.rng)
-
-        # PHYSICAL HEALTH LAYER
-        physical_health_layer = rand(model.rng)
-        sedentary_behaviour = rand(model.rng)
-
-
-        # PUBLIC TRANSPORT AGENTS 
-        is_pt_agent = false
-        pt_coverage_radius = 0 
-        fee = 0
-
-        #  PROMOTION AGENT 
-        is_promotion_agent = false 
-        promotion_coverage_radius = 0
-        av_advertising_efficacy = 0
-        pt_active_transport_advertising_efficacy = 0
-
-        #COGNITIVE LAYER - WALKING
-        #Theory of planned behaviour
-        walking_attitudes = rand(model.rng)
-        walking_social_norms = rand(model.rng)
-        walking_control_factors = rand(model.rng)
-        walking_behavioural_intention = 0
-        walking_subjective_norm = rand(model.rng)
-        walking_facilitating_conditions = rand(model.rng)
-        walking_threshold = rand(model.rng)
-
-        #COGNITIVE LAYER - CYCLING
-        #Theory of planned behaviour
-        cycling_attitudes = rand(model.rng)
-        cycling_social_norms = rand(model.rng)
-        cycling_control_factors = rand(model.rng)
-        cycling_behavioural_intention = 0
-        cycling_subjective_norm = rand(model.rng)
-        cycling_facilitating_conditions = rand(model.rng)
-        cycling_threshold = rand(model.rng)
-
-        # Control behaviours - Walking
-        walking_cb_pos = rand(model.rng)
-        walking_cb_neg = rand(model.rng)
-
-        # Control behaviours - Cycling
-        cycling_cb_pos = rand(model.rng)
-        cycling_cb_neg = rand(model.rng)
-
-        add_agent!(
-            TransportAgent, model, age, gender, education, employment, income,
-            original_transport_type, transport_type, transport_choice,
-            av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-            rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
-            near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
-            physical_health_layer, sedentary_behaviour,
-            is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
-            walking_attitudes, walking_social_norms, walking_control_factors, walking_behavioural_intention, walking_subjective_norm, walking_facilitating_conditions, walking_threshold,
-            cycling_attitudes, cycling_social_norms, cycling_control_factors, cycling_behavioural_intention, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold,
-            walking_cb_pos, walking_cb_neg, cycling_cb_pos, cycling_cb_neg
-        )
-    end
-
-    # PERSONAL MICROMOBILITY AGENTS
-
-    for n in 1:total_agents*0.015
-        #DEMOGRAPHICS
-        age = random_human_age()
-        gender = random_human_gender()
-        education = random_australian_education(age)
-        employment = random_australian_employment(age)
-        income = generate_income(age, gender, education, employment)
-
-        #TRANSPORT LAYER
-        original_transport_type = 5 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0.
-        transport_type = 4 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
-        transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-
-        #COGNITIVE LAYER - AUTONOMOUS VEHICLES
-        #Theory of planned behaviour
-        av_attitudes = rand(model.rng)
-        av_social_norms = rand(model.rng)
-        av_control_factors = rand(model.rng)
-        av_behavioural_intention = 0
-        av_subjective_norm = rand(model.rng)
-        av_facilitating_conditions = rand(model.rng)
-        av_threshold = rand(model.rng)
-
-        #COGNITIVE LAYER - AUTONOMOUS RIDE-HAIL APPS
-        #Theory of planned behaviour
-        rh_attitudes = rand(model.rng)
-        rh_social_norms = rand(model.rng)
-        rh_control_factors = rand(model.rng)
-        rh_behavioural_intention = 0
-        rh_subjective_norm = rand(model.rng)
-        rh_facilitating_conditions = rand(model.rng)
-        rh_threshold = rand(model.rng)
-        rh_fee_applied = false
-
-        #Public transport layer
-        near_public_transport = false
-
-        #Additional cognitive factors 
-        impulsivity = rand(model.rng)
-
-        # Control behaviours - AV 
-        av_cb_pos = rand(model.rng)
-        av_cb_neg = rand(model.rng)
-
-        # Control behaviours - RH
-        rh_cb_pos = rand(model.rng)
-        rh_cb_neg = rand(model.rng)
-
-        # PHYSICAL HEALTH LAYER
-        physical_health_layer = rand(model.rng)
-        sedentary_behaviour = rand(model.rng)
-
-
-        # PUBLIC TRANSPORT AGENTS 
-        is_pt_agent = true
-        pt_coverage_radius = 3 
-        fee = 0
-
-        #  PROMOTION AGENT 
-        is_promotion_agent = false 
-        promotion_coverage_radius = 0
-        av_advertising_efficacy = 0
-        pt_active_transport_advertising_efficacy = 0
-
-        #COGNITIVE LAYER - WALKING
-        #Theory of planned behaviour
-        walking_attitudes = rand(model.rng)
-        walking_social_norms = rand(model.rng)
-        walking_control_factors = rand(model.rng)
-        walking_behavioural_intention = 0
-        walking_subjective_norm = rand(model.rng)
-        walking_facilitating_conditions = rand(model.rng)
-        walking_threshold = rand(model.rng)
-
-        #COGNITIVE LAYER - CYCLING
-        #Theory of planned behaviour
-        cycling_attitudes = rand(model.rng)
-        cycling_social_norms = rand(model.rng)
-        cycling_control_factors = rand(model.rng)
-        cycling_behavioural_intention = 0
-        cycling_subjective_norm = rand(model.rng)
-        cycling_facilitating_conditions = rand(model.rng)
-        cycling_threshold = rand(model.rng)
-
-        # Control behaviours - Walking
-        walking_cb_pos = rand(model.rng)
-        walking_cb_neg = rand(model.rng)
-
-        # Control behaviours - Cycling
-        cycling_cb_pos = rand(model.rng)
-        cycling_cb_neg = rand(model.rng)
 
         add_agent!(
             TransportAgent, model, age, gender, education, employment, income,
@@ -828,8 +418,8 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
         income = generate_income(age, gender, education, employment)
 
         #TRANSPORT LAYER
-        original_transport_type = 5 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0.
-        transport_type = 5 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
+        original_transport_type = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0.
+        transport_type = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app BUT ALL START WITH 0. 
         transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
 
         #COGNITIVE LAYER - AUTONOMOUS VEHICLES
@@ -924,6 +514,116 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
             walking_cb_pos, walking_cb_neg, cycling_cb_pos, cycling_cb_neg
         )
     end 
+
+# PUBLIC TRANSPORT AGENTS
+
+for _ in 1:model.num_public_transport_agents
+    #DEMOGRAPHICS
+    age = random_human_age()
+    gender = random_human_gender()
+    education = random_australian_education(age)
+    employment = random_australian_employment(age)
+    income = generate_income(age, gender, education, employment)
+
+    #TRANSPORT LAYER
+    original_transport_type = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0.
+    transport_type = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app BUT ALL START WITH 0. 
+    transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
+
+    #COGNITIVE LAYER - AUTONOMOUS VEHICLES
+    #Theory of planned behaviour
+    av_attitudes = rand(model.rng)
+    av_social_norms = rand(model.rng)
+    av_control_factors = rand(model.rng)
+    av_behavioural_intention = 0
+    av_subjective_norm = rand(model.rng)
+    av_facilitating_conditions = rand(model.rng)
+    av_threshold = rand(model.rng)
+
+    #COGNITIVE LAYER - AUTONOMOUS RIDE-HAIL APPS
+    #Theory of planned behaviour
+    rh_attitudes = rand(model.rng)
+    rh_social_norms = rand(model.rng)
+    rh_control_factors = rand(model.rng)
+    rh_behavioural_intention = 0
+    rh_subjective_norm = rand(model.rng)
+    rh_facilitating_conditions = rand(model.rng)
+    rh_threshold = rand(model.rng)
+    rh_fee_applied = false
+
+    #Public transport layer
+    near_public_transport = false
+
+    #Additional cognitive factors 
+    impulsivity = rand(model.rng)
+
+    # Control behaviours - AV 
+    av_cb_pos = rand(model.rng)
+    av_cb_neg = rand(model.rng)
+
+    # Control behaviours - RH
+    rh_cb_pos = rand(model.rng)
+    rh_cb_neg = rand(model.rng)
+
+    # PHYSICAL HEALTH LAYER
+    physical_health_layer = rand(model.rng)
+    sedentary_behaviour = rand(model.rng)
+
+
+    # PUBLIC TRANSPORT AGENTS 
+    is_pt_agent = true
+    pt_coverage_radius = 2 
+    fee = 0
+
+    #  PROMOTION AGENT 
+    is_promotion_agent = false 
+    promotion_coverage_radius = 2
+    av_advertising_efficacy = 1
+    pt_active_transport_advertising_efficacy = 1.5
+
+    #COGNITIVE LAYER - WALKING
+    #Theory of planned behaviour
+    walking_attitudes = rand(model.rng)
+    walking_social_norms = rand(model.rng)
+    walking_control_factors = rand(model.rng)
+    walking_behavioural_intention = 0
+    walking_subjective_norm = rand(model.rng)
+    walking_facilitating_conditions = rand(model.rng)
+    walking_threshold = rand(model.rng)
+
+    #COGNITIVE LAYER - CYCLING
+    #Theory of planned behaviour
+    cycling_attitudes = rand(model.rng)
+    cycling_social_norms = rand(model.rng)
+    cycling_control_factors = rand(model.rng)
+    cycling_behavioural_intention = 0
+    cycling_subjective_norm = rand(model.rng)
+    cycling_facilitating_conditions = rand(model.rng)
+    cycling_threshold = rand(model.rng)
+
+    # Control behaviours - Walking
+    walking_cb_pos = rand(model.rng)
+    walking_cb_neg = rand(model.rng)
+
+    # Control behaviours - Cycling
+    cycling_cb_pos = rand(model.rng)
+    cycling_cb_neg = rand(model.rng)
+
+    add_agent!(
+        TransportAgent, model, age, gender, education, employment, income,
+        original_transport_type, transport_type, transport_choice,
+        av_attitudes, av_social_norms, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
+        rh_attitudes, rh_social_norms, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
+        near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
+        physical_health_layer, sedentary_behaviour,
+        is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
+        walking_attitudes, walking_social_norms, walking_control_factors, walking_behavioural_intention, walking_subjective_norm, walking_facilitating_conditions, walking_threshold,
+        cycling_attitudes, cycling_social_norms, cycling_control_factors, cycling_behavioural_intention, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold,
+        walking_cb_pos, walking_cb_neg, cycling_cb_pos, cycling_cb_neg
+        )
+    end 
+
+
     return model 
 end
 
@@ -973,7 +673,6 @@ function update_near_public_transport(agent, model)
             return
         end
     end
-    agent.near_public_transport = false
 end
 
 
@@ -1020,18 +719,18 @@ function walking_TBP(walking_attitudes, walking_control_factors, walking_social_
     print(return)
 end
 
-# function cycling_TBP(cycling_attitudes, cycling_control_factors, cycling_social_norms, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold)
-#     if false
-#         print("Facil Conditions: ", cycling_facilitating_conditions, " Sum: ", sum(cycling_attitudes)+sum(cycling_control_factors)+sum(cycling_social_norms)+sum(cycling_subjective_norm),
-#             " Threshold: ", cycling_threshold, "\n")
-#     end 
-#     return all(cycling_facilitating_conditions) &&
-#         sum(cycling_attitudes)+
-#         sum(cycling_control_factors)+
-#         sum(cycling_social_norms)+
-#         sum(cycling_subjective_norm) > cycling_threshold
-#     print(return)
-# end
+function cycling_TBP(cycling_attitudes, cycling_control_factors, cycling_social_norms, cycling_subjective_norm, cycling_facilitating_conditions, cycling_threshold)
+    if false
+        print("Facil Conditions: ", cycling_facilitating_conditions, " Sum: ", sum(cycling_attitudes)+sum(cycling_control_factors)+sum(cycling_social_norms)+sum(cycling_subjective_norm),
+            " Threshold: ", cycling_threshold, "\n")
+    end 
+    return all(cycling_facilitating_conditions) &&
+        sum(cycling_attitudes)+
+        sum(cycling_control_factors)+
+        sum(cycling_social_norms)+
+        sum(cycling_subjective_norm) > cycling_threshold
+    print(return)
+end
 
 # POLICIES: ASSIGNING FEES FOR SHORT RIDE-HAIL TRIPS AND TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
 # If the randomly generated trip for a ride-hail is a short distance, then there will be a 50% increase in price. 
@@ -1084,7 +783,7 @@ end
 function consolidated_transport_decision!(agent, model)
     # Calculate AV Decision
     # POLICY OPTION: AV PROMOTION VIA ADVERTISING 
-    #av_promotion_policy!(agent, model)
+    av_promotion_policy!(agent, model)
     
     av_attitudes = agent.av_attitudes
     av_control_behaviour = agent.av_cb_pos - 2*agent.av_cb_neg
@@ -1130,28 +829,32 @@ function consolidated_transport_decision!(agent, model)
     agent_trip_distance = rand(1:20)
     # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
     # Implementation of short trips and nearby public transport fees policies after x steps:
-    if model.tick >= 150
-        rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
-    else
-        rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost] 
-    end
+    # if model.tick >= 150
+    #     rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    # else
+    #     rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost] 
+    # end
 
     # If fees policies for RH are applied from the start: 
 
-    #rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
 
     # IF FEES FOR SHORT TRIPS POLICY IS NOT BEING IMPLEMENTED, ACTIVATE CODE BELOW: 
-    # rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+    #rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
     rh_decision = RH_TPB(rh_attitudes, rh_control_behaviour, rh_subjective_norms, rh_descriptive_norms, rh_facil_conditions, model.rh_threshold_model)
+
+
     
     # Final Decision
     # This is an example of a decision hierarchy - you can adjust as required.
     if av_decision 
         agent.transport_choice = 1
+        model.AVs += 1
         push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
     elseif rh_decision
         agent.transport_choice = 6
         push!(model.RH_trips_time_series, model.RH_trips_time_series[end] + 1)
+        model.RH_trips += 1
     else
         agent.transport_choice = agent.original_transport_type
     end
@@ -1312,7 +1015,7 @@ plot_population_timeseries(adf)
 #     figure
 # end
 
-#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output1_21022024.csv" ,adf)
+# CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output1_23022024.csv" ,adf)
 
 # plot_population_health(adf)
 
