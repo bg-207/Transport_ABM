@@ -702,7 +702,7 @@ function RH_TPB(rh_attitudes, rh_control_factors, rh_social_norms, rh_subjective
         sum(rh_attitudes)+
         sum(rh_control_factors)+
         sum(rh_social_norms)+
-        sum(rh_subjective_norm) > threshold
+        sum(rh_subjective_norm) > model.rh_threshold_model
     print(return)
 end
 
