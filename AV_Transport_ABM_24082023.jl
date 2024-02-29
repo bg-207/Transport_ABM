@@ -178,18 +178,18 @@ function transport_probability()
     rand_num = rand()
     if rand_num < 0.58
         return 2 # Private car
-    elseif rand_num < 0.78
-        return 3 # Public transport
-    elseif rand_num < 0.90
-        return 4 # Personal micromobility 
-    elseif rand_num < 0.98
-        return 5 # Cycling
-    elseif rand_num < 0.99
+    elseif rand_num < 0.82
         return 6 # Walking
-    elseif rand_num < 1.0
+    elseif rand_num < 0.94
+        return 3 # Public transport
+    elseif rand_num < 0.96
+        return 5 # Cycling
+    elseif rand_num < 0.98
         return 7 # Automated Ride-hail
+    elseif rand_num < 0.99
+        return 4 # Personal micromobility
     else
-        return 1 # AVs
+        return 8 # Car sharing
     end
 end
 
@@ -203,9 +203,9 @@ end
     income::Int
 
     #TRANSPORT LAYER
-    original_transport_type ::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = Automated ride-hail
-    transport_type::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking 
-    transport_choice::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app BUT ALL START WITH 0. 
+    original_transport_type ::Int64 # 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = ride-hail, 8 = car sharing, BUT ALL START WITH 0. 
+    transport_type::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = ride-hail, 8 = car sharing, 9 = AV ride hail 
+    transport_choice::Int64 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = ride-hail, 8 = car sharing, 9 = AV ride hail 
 
     #COGNITIVE LAYER - AUTONOMOUS VEHICLES
     #Theory of planned behaviour
@@ -310,8 +310,8 @@ function initialize(; total_agents = 250, griddims = (20, 20), private_AV_cost =
 
         #TRANSPORT LAYER
         original_transport_type = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = Automated ride-hail
-        transport_type = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
-        transport_choice = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
+        transport_type = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
+        transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
 
         #COGNITIVE LAYER - AUTONOMOUS VEHICLES
         #Theory of planned behaviour
@@ -641,25 +641,25 @@ end
 function model_step!(model)
     model.tick += 1
 
-    if model.tick <= 25
+    if model.tick <= 90
+        model.av_threshold_model = 3
+        model.rh_threshold_model = 3
+    
+    elseif model.tick > 90 && model.tick <= 180
         model.av_threshold_model = 2
         model.rh_threshold_model = 2
-    
-    elseif model.tick > 20 && model.tick <= 50
+
+    elseif model.tick > 180 && model.tick <= 270
         model.av_threshold_model = 1.5
         model.rh_threshold_model = 1.5
-
-    elseif model.tick > 50 && model.tick <= 75
+    
+    elseif model.tick > 270 && model.tick <= 360
         model.av_threshold_model = 1.2
         model.rh_threshold_model = 1.2
-    
-    elseif model.tick > 75 && model.tick <= 90
-        model.av_threshold_model = 1
-        model.rh_threshold_model = 1
 
     else 
-        model.av_threshold_model = 0.5
-        model.rh_threshold_model = 0.5
+        model.av_threshold_model = 1
+        model.rh_threshold_model = 1
     end
 
 end
@@ -759,10 +759,10 @@ end
 function consolidated_transport_decision!(agent, model)
     # Calculate AV Decision
     # POLICY OPTION: AV PROMOTION VIA ADVERTISING 
-    av_promotion_policy!(agent, model)
+    #av_promotion_policy!(agent, model)
     
     av_attitudes = agent.av_attitudes
-    av_control_behaviour = agent.av_cb_pos - 2*agent.av_cb_neg
+    av_control_behaviour = agent.av_cb_pos - agent.av_cb_neg
 #     # calculating social_norms
     av_subjective_norms = 0
     av_num_neighbors = 0
@@ -777,20 +777,24 @@ function consolidated_transport_decision!(agent, model)
     av_descriptive_norms = model.AVs / model.total_agents
 
     # COMMENT THIS OUT TO TURN OFF THE REBATE POLICY
-    # AVs not implemented yet code:
+    #AVs not implemented yet code:
     # if model.tick >= 200
     #     av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
     # else
     #     av_facil_conditions = [agent.income > model.private_AV_cost]
     # end
-    # AVs implemented from the start code:
-    av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+
+    # AVs implemented from the start code with rebate policy:
+    #av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+
+    # NO REBATE POLICY
+    av_facil_conditions = [agent.income > model.private_AV_cost]
 
     av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norms, av_facil_conditions, model.av_threshold_model)
 
     # Calculate Ride-Hail Decision
     rh_attitudes = agent.rh_attitudes
-    rh_control_behaviour = agent.rh_cb_pos - 2*agent.rh_cb_neg
+    rh_control_behaviour = agent.rh_cb_pos - agent.rh_cb_neg
     rh_descriptive_norms = model.RH_trips / model.total_agents
     # calculating social_norms
     rh_subjective_norms = 0
@@ -813,10 +817,10 @@ function consolidated_transport_decision!(agent, model)
 
     # If fees policies for RH are applied from the start: 
 
-    rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
+    #rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
 
     # IF FEES FOR SHORT TRIPS POLICY IS NOT BEING IMPLEMENTED, ACTIVATE CODE BELOW: 
-    #rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+    rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
     rh_decision = RH_TPB(rh_attitudes, rh_control_behaviour, rh_subjective_norms, rh_descriptive_norms, rh_facil_conditions, model.rh_threshold_model)
 
 
@@ -828,7 +832,7 @@ function consolidated_transport_decision!(agent, model)
         model.AVs += 1
         push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
     elseif rh_decision
-        agent.transport_choice = 6
+        agent.transport_choice = 9
         push!(model.RH_trips_time_series, model.RH_trips_time_series[end] + 1)
         model.RH_trips += 1
     else
@@ -851,13 +855,24 @@ end
 # end
 
 function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal microbility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
-    if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5
-        if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 6
+    if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5 || agent.transport_choice == 6
+        if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 9 || agent.transport_choice == 7 || agent.transport_choice == 8
             agent.sedentary_behaviour += 1
             agent.physical_health_layer -= 1
         end
     end
 end
+
+av_user(a) = (a.transport_choice == 1)
+auto_rh_user(a) = (a.transport_choice == 9)
+car_user(a) = (a.transport_choice == 2)
+pt_user(a) = (a.transport_choice == 3)
+personal_micromobility_user(a) = (a.transport_choice == 4)
+walker(a) = (a.transport_choice == 6)
+cyclist(a) = (a.transport_choice == 5) 
+rh_user(a) = (a.transport_choice == 7) 
+carsharing_user(a) = (a.transport_choice == 8) 
+
 
 # IF USING A SIGMOID FUNCTION 
 
@@ -924,11 +939,14 @@ model = initialize()
 
 
 av_user(a) = (a.transport_choice == 1)
-rh_user(a) = (a.transport_choice == 6)
+auto_rh_user(a) = (a.transport_choice == 9)
 car_user(a) = (a.transport_choice == 2)
 pt_user(a) = (a.transport_choice == 3)
 personal_micromobility_user(a) = (a.transport_choice == 4)
-walker(a) = (a.transport_choice == 5)
+walker(a) = (a.transport_choice == 6)
+cyclist(a) = (a.transport_choice == 5) 
+rh_user(a) = (a.transport_choice == 7) 
+carsharing_user(a) = (a.transport_choice == 8) 
 
 print(model.AVs_time_series)
 print(model.RH_trips_time_series)
@@ -939,7 +957,7 @@ rhcount(model) = sum(model.RH_trips_time_series)
 
 
 steps = 500
-adata = [(av_user, count), (rh_user, count), (car_user, count), (pt_user, count), (personal_micromobility_user, count), (walker, count)]
+adata = [(av_user, count), (auto_rh_user, count), (car_user, count), (pt_user, count), (personal_micromobility_user, count), (walker, count), (cyclist, count), (rh_user, count), (carsharing_user, count)]
 mdata = [avcount, rhcount]
 
 adf, mdf = run!(model, agent_step!, model_step!, steps; adata, mdata)
@@ -948,14 +966,17 @@ function plot_population_timeseries(adf)
     figure = Figure(resolution = (600, 400))
     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population")
     av_agents = lines!(ax, adf.step, adf.count_av_user, color = :blue)
-    rh_agents = lines!(ax, adf.step, adf.count_rh_user, color = :green)
+    auto_rh_agents = lines!(ax, adf.step, adf.count_auto_rh_user, color = :green)
     car_agents = lines!(ax, adf.step, adf.count_car_user, color = :purple)
     pt_agents = lines!(ax, adf.step, adf.count_pt_user, color = :orange)
     personal_micromobility_agents = lines!(ax, adf.step, adf.count_personal_micromobility_user, color = :red)
     walker_agents = lines!(ax, adf.step, adf.count_walker, color = :pink)
+    cyclist_agents = lines!(ax, adf.step, adf.count_cyclist, color = :yellow)
+    rh_agents = lines!(ax, adf.step, adf.count_rh_user, color = :magenta)
+    carsharing_agents = lines!(ax, adf.step, adf.count_carsharing_user, color = :cyan)
     # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
     # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    figure[1, 2] = Legend(figure, [av_agents, rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents], ["AVs", "RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers"])
+    figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
     figure
 end
 
