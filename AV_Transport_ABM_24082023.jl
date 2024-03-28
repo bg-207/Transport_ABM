@@ -854,7 +854,7 @@ end
 #     end
 # end
 
-function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal microbility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
+function agent_health!(agent, model) # 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = ride-hail, 8 = car sharing, BUT ALL START WITH 0. 
     if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5 || agent.transport_choice == 6
         if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 9 || agent.transport_choice == 7 || agent.transport_choice == 8
             agent.sedentary_behaviour += 1
