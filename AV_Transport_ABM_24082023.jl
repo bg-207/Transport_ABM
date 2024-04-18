@@ -11,12 +11,12 @@ space = GridSpaceSingle(size; periodic = false, metric = :chebyshev)
 
 
 # Right-skewed distribution
-function random_human_age()
-    age = Int(trunc(exp(rand(Normal(log(30), 1.5)))))
+function random_human_age(rng)
+    age = Int(trunc(exp(rand(rng, Normal(log(30), 1.5)))))
     return age > 120 ? 120 : age
 end
 
-function random_australian_age()
+function random_australian_age(rng)
     # Assign probabilities for each age group based on ABS data
     # https://www.abs.gov.au/statistics/people/population/national-state-and-territory-population/sep-2021
     v = [0.025, 0.028, 0.028, 0.031, 0.032, 0.033, 0.032, 0.033, 0.035, 0.037, 0.039, 0.042, 0.043, 0.045, 0.047, 0.049, 0.051, 0.054, 0.054, 0.053, 0.046, 0.036, 0.027, 0.015, 0.005]
@@ -25,18 +25,18 @@ function random_australian_age()
     s = sum(v)
     probs = v ./ s
 
-    age_group = rand(Categorical(probs))
-    age = rand(age_groups[age_group]:age_groups[age_group]+4)
+    age_group = rand(rng, Categorical(probs))
+    age = rand(rng, age_groups[age_group]:age_groups[age_group]+4)
     return trunc(Int, age)
 end
 
 # 1 = Male, -1 = Female
-function random_human_gender()
-    gender = rand(Bernoulli(0.5)) == 1 ? 1 : 0
+function random_human_gender(rng)
+    gender = rand(rng, Bernoulli(0.5)) == 1 ? 1 : 0
     return gender
 end
 
-function random_australian_education(age::Int)
+function random_australian_education(rng, age::Int)
     if age < 15
         return 1 # No educational qualification
     elseif age < 20
@@ -59,7 +59,7 @@ function random_australian_education(age::Int)
     probs = v ./ s
 
     # Generate a random education level based on the probabilities
-    education = rand(Categorical(probs))
+    education = rand(rng, Categorical(probs))
 
     # Return the education level as a category number
     # 1: No educational qualification
@@ -71,7 +71,7 @@ function random_australian_education(age::Int)
     return education
 end
 
-function random_australian_employment(age)
+function random_australian_employment(rng, age)
     # Assign probabilities for each employment status based on ABS data
     # https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release
     if age >= 65
@@ -86,7 +86,7 @@ function random_australian_employment(age)
     probs = v ./ s
 
     # Generate a random employment status based on the probabilities
-    employment = rand(Categorical(probs))
+    employment = rand(rng, Categorical(probs))
 
     # Return the employment status as a category number
     # 1: Employed - full time
@@ -99,7 +99,7 @@ function random_australian_employment(age)
     return employment
 end
 
-function generate_income(age::Int, gender::Int, education::Int, employment::Int)
+function generate_income(rng, age::Int, gender::Int, education::Int, employment::Int)
     # Calculate base income based on age and gender
     if age < 15
         base_income = 10000 # Invalid age
@@ -144,7 +144,7 @@ function generate_income(age::Int, gender::Int, education::Int, employment::Int)
     end
     
     # Add random noise to income
-    noise = rand(Normal(0, 0.2 * base_income)) # 20% standard deviation
+    noise = rand(rng, Normal(0, 0.2 * base_income)) # 20% standard deviation
     income = round(base_income + noise)
     income = trunc(Int, income)
     
@@ -171,12 +171,12 @@ end
 # Generate random positions in the grid
 function generate_random_position(grid::GridSpace)
     x = rand(1:size(grid)[1])
-    y = rand(1:size(grid)[2])
+    y = rand(1:size(grid)[2]) 
     return (x, y)
 end
 
-function transport_probability()
-    rand_num = rand()
+function transport_probability(rng)
+    rand_num = rand(rng)
     if rand_num < 0.58
         return 2 # Private car
     elseif rand_num < 0.82
@@ -286,7 +286,7 @@ end
 
 function agent_step!(agent, model)
     update_near_public_transport(agent, model)
-    consolidated_transport_decision!(agent, model)
+    consolidated_transport_decision!(abmrng(model), agent, model)
     agent_health!(agent, model)
     #apply_rebate_after_purchase!(agent, model)
 end
@@ -330,7 +330,7 @@ end
 
 
 # AV DECISION-MAKING USING THE THEORY OF PLANNED BEHAVIOUR # 
-function AV_TPB(av_attitudes, av_control_factors, av_subjective_norm, av_faciliating_conditions, threshold)
+function AV_TPB(av_attitudes, av_control_factors, av_subjective_norm, av_descriptive_norms, av_faciliating_conditions, threshold)
     if false
         print("Facil Conditions: ", av_faciliating_conditions, " Sum: ", sum(av_attitudes)+sum(av_control_factors)+sum(av_subjective_norm),
             " Threshold: ", threshold, "\n")
@@ -344,7 +344,7 @@ end
 
 # RIDE-HAIL DECISION-MAKING USING THE THEORY OF PLANNED BEHAVIOUR # 
 
-function RH_TPB(rh_attitudes, rh_control_factors, rh_subjective_norm, rh_faciliating_conditions, threshold)
+function RH_TPB(rh_attitudes, rh_control_factors, rh_subjective_norm, rh_descriptive_norms, rh_faciliating_conditions, threshold)
     if false
         print("Facil Conditions: ", rh_faciliating_conditions, " Sum: ", sum(rh_attitudes)+sum(rh_control_factors)+sum(rh_subjective_norms),
             " Threshold: ", threshold, "\n")
@@ -405,7 +405,7 @@ function av_promotion_policy!(agent, model)
 end
 
 
-function consolidated_transport_decision!(agent, model)
+function consolidated_transport_decision!(rng, agent, model)
     
     if agent.is_pt_agent == false && agent.is_promotion_agent == false
 
@@ -420,15 +420,15 @@ function consolidated_transport_decision!(agent, model)
         av_num_neighbors = 0
         for av_neighbor in nearby_agents(agent, model)
             if av_neighbor.is_pt_agent == false && av_neighbor.is_promotion_agent == false
-                agent_av_subjective_norms = av_subjective_norms + av_neighbor.av_attitudes
                 av_num_neighbors = av_num_neighbors + 1
+                av_subjective_norms = av_subjective_norms + av_neighbor.av_attitudes
             end
         end
         
         #Taking the average
         av_subjective_norms = av_num_neighbors==0 ? 0 : av_subjective_norms / av_num_neighbors    
 
-        av_descriptive_norms = model.AVs / model.total_agents
+        av_descriptive_norm = model.AVs / model.total_agents
 
         # COMMENT THIS OUT TO TURN OFF THE REBATE POLICY
         #AVs not implemented yet code:
@@ -444,7 +444,7 @@ function consolidated_transport_decision!(agent, model)
         # NO REBATE POLICY
         av_facil_conditions = [agent.income > model.private_AV_cost]
 
-        av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norms, av_facil_conditions, model.av_threshold_model)
+        av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norm, av_facil_conditions, model.av_threshold_model)
 
         # Calculate Ride-Hail Decision
         rh_attitudes = agent.rh_attitudes
@@ -455,14 +455,14 @@ function consolidated_transport_decision!(agent, model)
         rh_num_neighbors = 0
         for rh_neighbor in nearby_agents(agent, model)
             if rh_neighbor.is_pt_agent == false && rh_neighbor.is_promotion_agent == false
-                agent_rh_subjective_norms = rh_subjective_norms + rh_neighbor.rh_attitudes
                 rh_num_neighbors = rh_num_neighbors + 1
+                rh_subjective_norms = rh_subjective_norms + rh_neighbor.rh_attitudes
             end
         end
         
         #Taking the average
-        rh_subjective_norms = rh_num_neighbors==0 ? 0 : rh_subjective_norms / rh_num_neighbors   
-        agent_trip_distance = rand(1:20)
+        rh_subjective_norms = rh_num_neighbors==0 ? 0 : rh_subjective_norms / rh_num_neighbors
+        agent_trip_distance = rand(rng, 1:20)
         # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
         # Implementation of short trips and nearby public transport fees policies after x steps:
         # if model.tick >= 60
@@ -519,7 +519,7 @@ function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 
     # end
 end
 
-properties = Dict(:private_AV_cost => 50000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
+# properties = Dict(:private_AV_cost => 80000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
 
 using Random: MersenneTwister
 
@@ -546,14 +546,14 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
     for n in 1:model.total_agents
 
         #DEMOGRAPHICS
-        age = random_human_age()
-        gender = random_human_gender()
-        education = random_australian_education(age)
-        employment = random_australian_employment(age)
-        income = generate_income(age, gender, education, employment)
+        age = random_australian_age(abmrng(model))
+        gender = random_human_gender(abmrng(model))
+        education = random_australian_education(abmrng(model), age)
+        employment = random_australian_employment(abmrng(model), age)
+        income = generate_income(abmrng(model), age, gender, education, employment)
 
         #TRANSPORT LAYER
-        original_transport_type = transport_probability() # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = Automated ride-hail
+        original_transport_type = transport_probability(abmrng(model)) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = Automated ride-hail
         transport_type = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking BUT ALL START WITH 0. 
         transport_choice = 0 # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Walking, 6 = Ride-hail app, BUT ALL START WITH 0. 
 
@@ -879,11 +879,11 @@ end
 
 
 
-# adata = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_social_norms, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_social_norms, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
-# model = initialize()
-# adf, mdf = run!(model, 200; adata)
+adata = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
+model = initialize()
+adf, mdf = run!(model, 200; adata)
 
-# CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output20_08042024.csv" ,agent_df)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/checking2_18042024.csv" ,adf)
 
 using CairoMakie # using a different plotting backend that enables interactive plots
 using Statistics
@@ -958,7 +958,7 @@ Fig_2 = plot_population_health(agent_df)
 display(Fig_1)
 display(Fig_2)
 
-#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/output7_12042024.csv" ,agent_df)
+#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/baselinetest10_17042024.csv" ,agent_df)
 
 
 
