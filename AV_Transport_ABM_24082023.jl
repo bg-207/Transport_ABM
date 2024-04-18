@@ -287,8 +287,9 @@ end
 function agent_step!(agent, model)
     update_near_public_transport(agent, model)
     consolidated_transport_decision!(abmrng(model), agent, model)
+    #base_transport_decision!(agent, model)
     agent_health!(agent, model)
-    #apply_rebate_after_purchase!(agent, model)
+    apply_rebate_after_purchase!(agent, model)
 end
 
 function model_step!(model)
@@ -385,7 +386,7 @@ end
 # POLICY: VISIBLE REBATE FOR AGENTS
 # This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
 
-AV_rebate_full_amount = 5000
+AV_rebate_full_amount = 10000
 
 function apply_rebate!(agent, model, rebate_amount)
 
@@ -411,7 +412,7 @@ function consolidated_transport_decision!(rng, agent, model)
 
         # Calculate AV Decision
         # POLICY OPTION: AV PROMOTION VIA ADVERTISING 
-        #av_promotion_policy!(agent, model)
+        av_promotion_policy!(agent, model)
         
         av_attitudes = agent.av_attitudes
         av_control_behaviour = agent.av_cb_pos - agent.av_cb_neg
@@ -465,7 +466,7 @@ function consolidated_transport_decision!(rng, agent, model)
         agent_trip_distance = rand(rng, 1:20)
         # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
         # Implementation of short trips and nearby public transport fees policies after x steps:
-        # if model.tick >= 60
+        # if model.tick >= 120
         #     rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
         # else
         #     rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost] 
@@ -497,6 +498,9 @@ function consolidated_transport_decision!(rng, agent, model)
     end
 end
 
+function base_transport_decision!(agent, model)
+    agent.transport_choice = agent.original_transport_type
+end
 
 # ORIGINAL AGENT HEALTH CODE 
 
@@ -519,7 +523,7 @@ function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 
     # end
 end
 
-# properties = Dict(:private_AV_cost => 80000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
+properties = Dict(:private_AV_cost => 50000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
 
 using Random: MersenneTwister
 
@@ -868,22 +872,22 @@ model = initialize()
 # POLICY: 10% REBATE ON THE PURCHASE PRICE 
 # Note: the results from this do not change anything, as it does not change the perceived purchase price. Option 2 will address this. 
 
-const AV_REBATE = 0.1 # 10% rebate for using AV
+const AV_REBATE = 5000 # 10% rebate for using AV
 
 function apply_rebate_after_purchase!(agent, model)
     if agent.transport_choice == 1 # If choice is AV
-        rebate_amount = model.private_AV_cost * AV_REBATE
+        rebate_amount = model.private_AV_cost - AV_REBATE
         agent.income += rebate_amount # Apply the rebate to the income
     end
 end
 
 
 
-adata = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
-model = initialize()
-adf, mdf = run!(model, 200; adata)
+# adata = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
+# model = initialize()
+# adf, mdf = run!(model, 200; adata)
 
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/checking2_18042024.csv" ,adf)
+#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/checking2_18042024.csv" ,adf)
 
 using CairoMakie # using a different plotting backend that enables interactive plots
 using Statistics
@@ -936,7 +940,7 @@ function plot_population_timeseries(agent_df)
     carsharing_agents = lines!(ax, agent_df.time, (agent_df.count_carsharing_user/model.total_agents*100), color = :cyan)
     # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
     # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
+    #figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
     figure
 end
 
@@ -958,7 +962,7 @@ Fig_2 = plot_population_health(agent_df)
 display(Fig_1)
 display(Fig_2)
 
-#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/baselinetest10_17042024.csv" ,agent_df)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/5000rebateafterpurchase_v2_18042024.csv" ,agent_df)
 
 
 
