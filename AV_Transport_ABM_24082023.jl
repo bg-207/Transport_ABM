@@ -194,6 +194,35 @@ function transport_probability(rng)
     end
 end
 
+function generate_av_attitude(rng) # CREATE A GRAPH OF THESE THREE 
+    α = 2 # Peak at 0.15
+    β = 12
+    dist = Beta(α, β)
+    return rand(rng, dist)
+end
+
+function generate_rh_attitude(rng) # CREATE A GRAPH OF THESE THREE 
+    α = 5 # Peak at 0.15
+    β = 8
+    dist = Beta(α, β)
+    return rand(rng, dist)
+end
+
+function generate_av_rh_controlfactors(rng)
+    α = 4 # Adjusted to shift towards 0.4 
+    β = 6
+    dist = Beta(α, β)
+    return rand(rng, dist)
+end
+
+function generate_subjective_norm_weighting(rng)
+    α = 7  # Adjusted to shift the peak towards 0.7
+    β = 3  # Calculated to complement α for the desired peak
+    dist = Beta(α, β)
+    return rand(rng, dist)
+end
+
+
 
 @agent struct TransportAgent(GridAgent{2}) 
     #DEMOGRAPHICS 
@@ -214,6 +243,8 @@ end
     av_control_factors::Float32
     av_behavioural_intention::Int64
     av_subjective_norm::Float32
+    av_subjective_norm_weighting::Float32
+    av_descriptive_norm::Float32
     av_facilitating_conditions::Float32
     av_threshold::Float32
 
@@ -223,6 +254,8 @@ end
     rh_control_factors::Float32
     rh_behavioural_intention::Int64
     rh_subjective_norm::Float32
+    rh_subjective_norm_weighting::Float32
+    rh_descriptive_norm::Float32
     rh_facilitating_conditions::Float32
     rh_threshold::Float32
     rh_fee_applied::Bool
@@ -289,32 +322,32 @@ function agent_step!(agent, model)
     consolidated_transport_decision!(abmrng(model), agent, model)
     #base_transport_decision!(agent, model)
     agent_health!(agent, model)
-    apply_rebate_after_purchase!(agent, model)
+    #apply_rebate_after_purchase!(agent, model)
 end
+
+# function compute_av_price(tick, high = 100000, low = 50000, t=500)
+#     x = 0:0.1:t
+#     transformed_x_values = -3 .+ 6 .* (x ./ t)
+#     original_results = 1 .- tanh.(transformed_x_values)
+#     scaled_results = low .+ (high - low) .* (original_results .- minimum(original_results)) ./ (maximum(original_results) - minimum(original_results))
+#     return scaled_results[(tick * 10)]
+# end
+
+function compute_av_price(tick, high = 100000, low = 50000, t=500)
+    x = 0:0.1:t
+    transformed_x_values = -3 .+ 6 .* (x ./ t)
+    original_results = 1 .- tanh.(transformed_x_values)
+    scaled_results = low .+ (high - low) .* (original_results .- minimum(original_results)) ./ (maximum(original_results) - minimum(original_results))
+    index = min(length(scaled_results), tick * 10)  # Ensure the index does not exceed the array length
+    return scaled_results[index]
+end
+
 
 function model_step!(model)
     model.tick += 1
-
-    if model.tick <= 40
-        model.av_threshold_model = 0.8
-        model.rh_threshold_model = 0.8
-    
-    elseif model.tick > 40 && model.tick <= 80
-        model.av_threshold_model = 0.6
-        model.rh_threshold_model = 0.6
-
-    elseif model.tick > 80 && model.tick <= 120
-        model.av_threshold_model = 0.4
-        model.rh_threshold_model = 0.4
-
-    elseif model.tick > 120 && model.tick <= 160
-        model.av_threshold_model = 0.2
-        model.rh_threshold_model = 0.2
-
-    elseif model.tick > 160 && model.tick <= 200
-        model.av_threshold_model = 0.0
-        model.rh_threshold_model = 0.0
-    end
+    model.av_threshold_model = 0.5
+    model.rh_threshold_model = 0.5
+    model.private_AV_cost = compute_av_price(model.tick)   ### < Change this line in model_step! function
 end
 
 # Assign whether the agents are near public transport
@@ -336,11 +369,11 @@ function AV_TPB(av_attitudes, av_control_factors, av_subjective_norm, av_descrip
         print("Facil Conditions: ", av_faciliating_conditions, " Sum: ", sum(av_attitudes)+sum(av_control_factors)+sum(av_subjective_norm),
             " Threshold: ", threshold, "\n")
     end
+    
     return all(av_faciliating_conditions) &&
         (sum(av_attitudes)+
         sum(av_control_factors)+
-        sum(av_subjective_norm))/3 > model.av_threshold_model
-        print(return)
+        sum(av_subjective_norm))+ sum(av_descriptive_norms)/4 > model.av_threshold_model
 end
 
 # RIDE-HAIL DECISION-MAKING USING THE THEORY OF PLANNED BEHAVIOUR # 
@@ -353,8 +386,7 @@ function RH_TPB(rh_attitudes, rh_control_factors, rh_subjective_norm, rh_descrip
     return all(rh_faciliating_conditions) &&
         (sum(rh_attitudes)+
         sum(rh_control_factors)+
-        sum(rh_subjective_norm))/3 > model.rh_threshold_model
-    print(return)
+        sum(rh_subjective_norm) + sum(rh_descriptive_norms))/4 > model.rh_threshold_model
 end
 
 
@@ -372,6 +404,7 @@ function assign_rh_trip_cost(agent_trip_distance, agent, model)
     if agent_trip_distance <= short_trip_threshold
         trip_cost += short_trip_fee_amount
     end
+
 
     # FEES FOR TRIPS WHERE PUBLIC TRANSPORT IS NEARBY 
     nearby_public_transport_fee = 10
@@ -398,7 +431,7 @@ end
 # POLICY: PROMOTION OF AUTONOMOUS VEHICLES 
 
 function av_promotion_policy!(agent, model)
-    for av_promotion_agent in nearby_agents(agent, model, 3)
+    for av_promotion_agent in nearby_agents(agent, model, 5)
         if av_promotion_agent.is_promotion_agent == true
             agent.av_attitudes + av_promotion_agent.av_advertising_efficacy 
         end
@@ -412,10 +445,11 @@ function consolidated_transport_decision!(rng, agent, model)
 
         # Calculate AV Decision
         # POLICY OPTION: AV PROMOTION VIA ADVERTISING 
-        av_promotion_policy!(agent, model)
-        
+        #av_promotion_policy!(agent, model)
+
+        # Step 1 - set up each factor of the TPB
         av_attitudes = agent.av_attitudes
-        av_control_behaviour = agent.av_cb_pos - agent.av_cb_neg
+        av_control_behaviour = agent.av_control_factors
     #     # calculating subjective norms
         av_subjective_norms = 0
         av_num_neighbors = 0
@@ -427,9 +461,11 @@ function consolidated_transport_decision!(rng, agent, model)
         end
         
         #Taking the average
-        av_subjective_norms = av_num_neighbors==0 ? 0 : av_subjective_norms / av_num_neighbors    
+        av_subjective_norms = (av_num_neighbors==0 ? 0 : av_subjective_norms / av_num_neighbors)/agent.av_subjective_norm_weighting
+        agent.av_subjective_norm = av_subjective_norms    
 
         av_descriptive_norm = model.AVs / model.total_agents
+        agent.av_descriptive_norm = av_descriptive_norm
 
         # COMMENT THIS OUT TO TURN OFF THE REBATE POLICY
         #AVs not implemented yet code:
@@ -445,12 +481,15 @@ function consolidated_transport_decision!(rng, agent, model)
         # NO REBATE POLICY
         av_facil_conditions = [agent.income > model.private_AV_cost]
 
+        # Step 2: Determine how they interact with each other 
+
         av_decision = AV_TPB(av_attitudes, av_control_behaviour, av_subjective_norms, av_descriptive_norm, av_facil_conditions, model.av_threshold_model)
 
         # Calculate Ride-Hail Decision
         rh_attitudes = agent.rh_attitudes
-        rh_control_behaviour = agent.rh_cb_pos - agent.rh_cb_neg
+        rh_control_behaviour = agent.rh_control_factors
         rh_descriptive_norms = model.RH_trips / model.total_agents
+        agent.rh_descriptive_norm = rh_descriptive_norms
         # calculating subjective norms
         rh_subjective_norms = 0
         rh_num_neighbors = 0
@@ -462,7 +501,9 @@ function consolidated_transport_decision!(rng, agent, model)
         end
         
         #Taking the average
-        rh_subjective_norms = rh_num_neighbors==0 ? 0 : rh_subjective_norms / rh_num_neighbors
+        rh_subjective_norms = (rh_num_neighbors==0 ? 0 : rh_subjective_norms / rh_num_neighbors)/agent.rh_subjective_norm_weighting
+        agent.rh_subjective_norm = rh_subjective_norms    
+
         agent_trip_distance = rand(rng, 1:20)
         # IF FEES FOR SHORT TRIPS AND FOR NEARBY PUBLIC TRANSPORT ARE BEING IMPLEMENTED, ACTIVATE CODE BELOW:
         # Implementation of short trips and nearby public transport fees policies after x steps:
@@ -477,7 +518,7 @@ function consolidated_transport_decision!(rng, agent, model)
         #rh_facil_conditions = [(agent.income*0.0005) > assign_rh_trip_cost(agent_trip_distance, agent, model)] 
 
         # IF FEES FOR SHORT TRIPS POLICY IS NOT BEING IMPLEMENTED, ACTIVATE CODE BELOW: 
-        rh_facil_conditions = [(agent.income*0.001) > model.rh_trip_cost]
+        rh_facil_conditions = [(agent.income*0.0005) > model.rh_trip_cost]
         rh_decision = RH_TPB(rh_attitudes, rh_control_behaviour, rh_subjective_norms, rh_descriptive_norms, rh_facil_conditions, model.rh_threshold_model)
 
 
@@ -486,10 +527,12 @@ function consolidated_transport_decision!(rng, agent, model)
         # This is an example of a decision hierarchy - you can adjust as required.
         if av_decision 
             agent.transport_choice = 1
+            agent.av_attitudes = agent.av_attitudes + ((1-agent.av_attitudes)*0.5)
             model.AVs += 1
             push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
         elseif rh_decision
             agent.transport_choice = 9
+            agent.rh_attitudes = agent.rh_attitudes + ((1-agent.rh_attitudes)*0.5)
             push!(model.RH_trips_time_series, model.RH_trips_time_series[end] + 1)
             model.RH_trips += 1
         else
@@ -516,14 +559,14 @@ end
 # end
 
 function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 = Personal micromobility,  5 = Cycling, 6 = Walking, and 7 = ride-hail, 8 = car sharing, 9 = AV ride hail 
-    # if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5 || agent.transport_choice == 6
+    #if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5 || agent.transport_choice == 6
         if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 9 || agent.transport_choice == 7 || agent.transport_choice == 8
             agent.sedentary_behaviour += 1
         end
-    # end
+    #end
 end
 
-properties = Dict(:private_AV_cost => 50000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
+properties = Dict(:private_AV_cost => 100000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
 
 using Random: MersenneTwister
 
@@ -535,7 +578,7 @@ model = StandardABM(
 )
 
 
-function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost = 50000, rh_trip_cost = 10,  av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
+function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost = 100000, rh_trip_cost = 10,  av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
     RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 100, seed = 100)
     space = GridSpace(gridsize, periodic = false)
     properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, 
@@ -563,20 +606,24 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
 
         #COGNITIVE LAYER - AUTONOMOUS VEHICLES
         #Theory of planned behaviour
-        av_attitudes = rand(abmrng(model))
-        av_control_factors = rand(abmrng(model))
+        av_attitudes = generate_av_attitude(abmrng(model))
+        av_control_factors = generate_av_rh_controlfactors(abmrng(model))
         av_behavioural_intention = 0
-        av_subjective_norm = rand(abmrng(model))
-        av_facilitating_conditions = rand(abmrng(model))
+        av_subjective_norm = 0
+        av_subjective_norm_weighting = generate_subjective_norm_weighting(abmrng(model))
+        av_descriptive_norm = 0
+        av_facilitating_conditions = 0
         av_threshold = rand(abmrng(model))
 
         #COGNITIVE LAYER - AUTONOMOUS RIDE-HAIL APPS
         #Theory of planned behaviour
-        rh_attitudes = rand(abmrng(model))
-        rh_control_factors = rand(abmrng(model))
+        rh_attitudes = generate_rh_attitude(abmrng(model))
+        rh_control_factors = generate_av_rh_controlfactors(abmrng(model))
         rh_behavioural_intention = 0
-        rh_subjective_norm = rand(abmrng(model))
-        rh_facilitating_conditions = rand(abmrng(model))
+        rh_subjective_norm = 0
+        rh_subjective_norm_weighting = generate_subjective_norm_weighting(abmrng(model))
+        rh_descriptive_norm = 0
+        rh_facilitating_conditions = 0
         rh_threshold = rand(abmrng(model))
         rh_fee_applied = false
 
@@ -640,8 +687,8 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
         add_agent!(
             TransportAgent, model, age, gender, education, employment, income,
             original_transport_type, transport_type, transport_choice,
-            av_attitudes, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-            rh_attitudes, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
+            av_attitudes, av_control_factors, av_behavioural_intention, av_subjective_norm, av_subjective_norm_weighting, av_descriptive_norm, av_facilitating_conditions, av_threshold,
+            rh_attitudes, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_subjective_norm_weighting, rh_descriptive_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
             near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
             physical_health_layer, sedentary_behaviour,
             is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
@@ -672,6 +719,8 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
         av_control_factors = 0
         av_behavioural_intention = 0
         av_subjective_norm = 0
+        av_subjective_norm_weighting = 0
+        av_descriptive_norm = 0 
         av_facilitating_conditions = 0
         av_threshold = 0
 
@@ -681,6 +730,8 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
         rh_control_factors = 0
         rh_behavioural_intention = 0
         rh_subjective_norm = 0
+        rh_subjective_norm_weighting = 0
+        rh_descriptive_norm = 0 
         rh_facilitating_conditions = 0
         rh_threshold = 0
         rh_fee_applied = false
@@ -744,8 +795,8 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
         add_agent!(
             TransportAgent, model, age, gender, education, employment, income,
             original_transport_type, transport_type, transport_choice,
-            av_attitudes, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-            rh_attitudes, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
+            av_attitudes, av_control_factors, av_behavioural_intention, av_subjective_norm, av_subjective_norm_weighting, av_descriptive_norm, av_facilitating_conditions, av_threshold,
+            rh_attitudes, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_subjective_norm_weighting, rh_descriptive_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
             near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
             physical_health_layer, sedentary_behaviour,
             is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
@@ -776,6 +827,8 @@ for _ in 1:model.num_public_transport_agents
     av_control_factors = 0
     av_behavioural_intention = 0
     av_subjective_norm = 0
+    av_subjective_norm_weighting = 0
+    av_descriptive_norm = 0
     av_facilitating_conditions = 0
     av_threshold = 0
 
@@ -785,6 +838,8 @@ for _ in 1:model.num_public_transport_agents
     rh_control_factors = 0
     rh_behavioural_intention = 0
     rh_subjective_norm = 0
+    rh_subjective_norm_weighting = 0
+    rh_descriptive_norm = 0
     rh_facilitating_conditions = 0
     rh_threshold = 0
     rh_fee_applied = false
@@ -848,8 +903,8 @@ for _ in 1:model.num_public_transport_agents
     add_agent!(
         TransportAgent, model, age, gender, education, employment, income,
         original_transport_type, transport_type, transport_choice,
-        av_attitudes, av_control_factors, av_behavioural_intention, av_subjective_norm, av_facilitating_conditions, av_threshold,
-        rh_attitudes, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
+        av_attitudes, av_control_factors, av_behavioural_intention, av_subjective_norm, av_subjective_norm_weighting, av_descriptive_norm, av_facilitating_conditions, av_threshold,
+        rh_attitudes, rh_control_factors, rh_behavioural_intention, rh_subjective_norm, rh_subjective_norm_weighting, rh_descriptive_norm, rh_facilitating_conditions, rh_threshold, rh_fee_applied,
         near_public_transport, impulsivity, av_cb_pos, av_cb_neg, rh_cb_pos, rh_cb_neg,
         physical_health_layer, sedentary_behaviour,
         is_pt_agent, pt_coverage_radius, fee, is_promotion_agent, promotion_coverage_radius, av_advertising_efficacy, pt_active_transport_advertising_efficacy,
@@ -906,6 +961,11 @@ walker(a) = (a.transport_choice == 6)
 cyclist(a) = (a.transport_choice == 5) 
 rh_user(a) = (a.transport_choice == 7) 
 carsharing_user(a) = (a.transport_choice == 8) 
+av_attitudes_plot(travel_agents) = (travel_agents.av_attitudes)
+rh_attitudes_plot(travel_agents) = (travel_agents.rh_attitudes)
+rh_controlfactors_plot(travel_agents) = (travel_agents.rh_control_factors)
+rh_subjectivenorms_plot(travel_agents) = (travel_agents.rh_subjective_norm)
+
 
 travel_agents(a) = (a.is_promotion_agent == false) && (a.is_pt_agent == false)
 sedentary_behaviour_plot(travel_agents) = (travel_agents.sedentary_behaviour) 
@@ -917,12 +977,21 @@ print(model.RH_trips_time_series)
 avcount(model) = sum(model.AVs_time_series)
 rhcount(model) = sum(model.RH_trips_time_series)
 
-steps = 500
+# steps = 500
 adata = [(av_user, count), (auto_rh_user, count), (rh_user, count), (car_user, count), (pt_user, count), (personal_micromobility_user, count), (walker, count), (cyclist, count), (carsharing_user, count), 
-(sedentary_behaviour_plot, mean)]
+(sedentary_behaviour_plot, mean), (av_attitudes_plot, mean), (rh_attitudes_plot, mean), (rh_controlfactors_plot, mean), (rh_subjectivenorms_plot, mean)]
 mdata = [avcount, rhcount]
+# adata_individual = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
+adata_individual = [:pos, :income, :original_transport_type, :transport_choice, :av_attitudes, :av_control_factors, :av_subjective_norm, :av_descriptive_norm, :rh_attitudes, :rh_control_factors, :rh_subjective_norm, :rh_descriptive_norm]
 
-agent_df, model_df = run!(model, 200; adata = adata, mdata = mdata)
+
+agent_df, model_df = run!(model, 501; adata = adata, mdata = mdata)
+
+
+
+
+#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/baseline_v1_24042024.csv", agent_df)
+
 
 
 
@@ -940,7 +1009,7 @@ function plot_population_timeseries(agent_df)
     carsharing_agents = lines!(ax, agent_df.time, (agent_df.count_carsharing_user/model.total_agents*100), color = :cyan)
     # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
     # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    #figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
+    figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
     figure
 end
 
@@ -953,23 +1022,55 @@ function plot_population_health(adf)
     figure
 end
 
+function plot_av_attitudes(adf)
+    figure = Figure()
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Agent AV attitudes")
+    sedentary_agent_plot_1 = lines!(ax, agent_df.time, agent_df.mean_av_attitudes_plot, color = :olive)
+    # figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Average sedentary trips"])
+    figure
+end
+
+function plot_rh_attitudes(adf)
+    figure = Figure()
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Agent RH attitudes")
+    sedentary_agent_plot_1 = lines!(ax, agent_df.time, agent_df.mean_rh_attitudes_plot, color = :magenta)
+    # figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Average sedentary trips"])
+    figure
+end
+
+function plot_rh_control_factors(adf)
+    figure = Figure()
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Agent RH attitudes")
+    sedentary_agent_plot_1 = lines!(ax, agent_df.time, agent_df.mean_rh_controlfactors_plot, color = :magenta)
+    # figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Average sedentary trips"])
+    figure
+end
+
+function plot_rh_subjective_norms(adf)
+    figure = Figure()
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Agent RH subjective norms")
+    sedentary_agent_plot_1 = lines!(ax, agent_df.time, agent_df.mean_rh_subjectivenorms_plot, color = :magenta)
+    # figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Average sedentary trips"])
+    figure
+end
 
 
-# Plot graphs: 
+
+
+# # Plot graphs: 
 Fig_1 = plot_population_timeseries(agent_df)
 Fig_2 = plot_population_health(agent_df)
+Fig_3 = plot_av_attitudes(agent_df)
+Fig_4 = plot_rh_attitudes(agent_df)
+#Fig_5 = plot_rh_control_factors(agent_df)
+Fig_6 = plot_rh_subjective_norms(agent_df)
 
 display(Fig_1)
 display(Fig_2)
-
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/5000rebateafterpurchase_v2_18042024.csv" ,agent_df)
-
-
-
-
-
-
-
+display(Fig_3)
+display(Fig_4)
+#display(Fig_5)
+display(Fig_6)
 
 
 
