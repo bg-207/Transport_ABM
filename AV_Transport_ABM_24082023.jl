@@ -286,7 +286,7 @@ end
     # PROMOTION AGENT 
     is_promotion_agent::Bool
     promotion_coverage_radius::Int
-    av_advertising_efficacy::Int
+    av_advertising_efficacy::Float32
     pt_active_transport_advertising_efficacy::Float32
 
     # COGNITIVE LAYER FOR WALKING 
@@ -322,7 +322,6 @@ function agent_step!(agent, model)
     consolidated_transport_decision!(abmrng(model), agent, model)
     #base_transport_decision!(agent, model)
     agent_health!(agent, model)
-    #apply_rebate_after_purchase!(agent, model)
 end
 
 # function compute_av_price(tick, high = 100000, low = 50000, t=500)
@@ -419,7 +418,7 @@ end
 # POLICY: VISIBLE REBATE FOR AGENTS
 # This rebate changes the price of the AV so that agents can see it decrease, essentially appearing as a 'discount' for private AVs. 
 
-AV_rebate_full_amount = 10000
+AV_rebate_full_amount = 5000
 
 function apply_rebate!(agent, model, rebate_amount)
 
@@ -431,9 +430,9 @@ end
 # POLICY: PROMOTION OF AUTONOMOUS VEHICLES 
 
 function av_promotion_policy!(agent, model)
-    for av_promotion_agent in nearby_agents(agent, model, 5)
+    for av_promotion_agent in nearby_agents(agent, model, 2)
         if av_promotion_agent.is_promotion_agent == true
-            agent.av_attitudes + av_promotion_agent.av_advertising_efficacy 
+            agent.av_attitudes = agent.av_attitudes + ((1-agent.av_attitudes)*(av_promotion_agent.av_advertising_efficacy))  
         end
     end
 end
@@ -477,6 +476,7 @@ function consolidated_transport_decision!(rng, agent, model)
 
         # AVs implemented from the start code with rebate policy:
         #av_facil_conditions = [agent.income > apply_rebate!(agent, model, AV_rebate_full_amount)]
+    
 
         # NO REBATE POLICY
         av_facil_conditions = [agent.income > model.private_AV_cost]
@@ -530,6 +530,10 @@ function consolidated_transport_decision!(rng, agent, model)
             agent.av_attitudes = agent.av_attitudes + ((1-agent.av_attitudes)*0.5)
             model.AVs += 1
             push!(model.AVs_time_series, model.AVs_time_series[end] + 1)
+            # IF REBATE AFTER PURCHASE POLICY IS BEING IMPLEMENTED, ACTIVATE CODE BELOW 
+            #private_av_price = model.private_AV_cost - AV_rebate_full_amount
+            #rebate_amount = model.private_AV_cost - AV_rebate_full_amount
+            #agent.income = round(Int64, agent.income - rebate_amount) # Apply the rebate to the income
         elseif rh_decision
             agent.transport_choice = 9
             agent.rh_attitudes = agent.rh_attitudes + ((1-agent.rh_attitudes)*0.5)
@@ -562,13 +566,19 @@ function agent_health!(agent, model) # 1 = AV, 2 = Car, 3 = Public Transport, 4 
     #if agent.original_transport_type == 3 || agent.transport_choice == 4 || agent.transport_choice == 5 || agent.transport_choice == 6
         if agent.transport_choice == 1 || agent.transport_choice == 2 || agent.transport_choice == 9 || agent.transport_choice == 7 || agent.transport_choice == 8
             agent.sedentary_behaviour += 1
+            model.sedentary_trips += 1
+            model.total_trips += 1
+        elseif agent.transport_choice == 3 || agent.transport_choice == 4 || agent.transport_choice == 5 || agent.transport_choice == 6
+            model.active_trips += 1
+            model.total_trips += 1
         end
     #end
 end
 
-properties = Dict(:private_AV_cost => 100000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 50)
-
 using Random: MersenneTwister
+
+properties = Dict(:private_AV_cost => 100000, :rh_trip_cost => 10, :tick => 1, :av_threshold_model => 5.0, :rh_threshold_model => 5.0, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => 250, 
+:rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 10, :active_trips => 0, :sedentary_trips => 0, :total_trips => 0)
 
 model = StandardABM(
     TransportAgent, space; properties, 
@@ -579,10 +589,10 @@ model = StandardABM(
 
 
 function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost = 100000, rh_trip_cost = 10,  av_threshold_model = 5.0, rh_threshold_model = 5.0, AVs = 0, RH_trips = 0, AVs_time_series = [0], # Starting with 0 AVs
-    RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 100, seed = 100)
+    RH_trips_time_series = [0], rh_fee_applied = false, num_public_transport_agents = 100, num_promotion_agents = 10, seed = 100, active_trips = 0, sedentary_trips = 0, total_trips = 0)
     space = GridSpace(gridsize, periodic = false)
     properties = Dict(:private_AV_cost => private_AV_cost, :rh_trip_cost => rh_trip_cost, :tick => 1, :av_threshold_model => av_threshold_model, :rh_threshold_model => rh_threshold_model, :AVs => 0, :RH_trips => 0, :AVs_time_series => [0], :RH_trips_time_series => [0], :total_agents => total_agents, 
-    :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 100)
+    :rh_fee_applied => false, :num_public_transport_agents => 100, :num_promotion_agents => 10, :active_trips => active_trips, :sedentary_trips => sedentary_trips, :total_trips => total_trips)
     rng = MersenneTwister(seed)
     model = StandardABM(TransportAgent, space; agent_step! = agent_step!, model_step! = model_step!,
     properties, rng, container = Vector, scheduler = Schedulers.Randomly())
@@ -763,7 +773,7 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = true 
         promotion_coverage_radius = 2
-        av_advertising_efficacy = 1
+        av_advertising_efficacy = 0.01
         pt_active_transport_advertising_efficacy = 1.5
 
         #COGNITIVE LAYER - WALKING
@@ -922,22 +932,6 @@ end
 
 model = initialize()
 
-
-
-# POLICY: 10% REBATE ON THE PURCHASE PRICE 
-# Note: the results from this do not change anything, as it does not change the perceived purchase price. Option 2 will address this. 
-
-const AV_REBATE = 5000 # 10% rebate for using AV
-
-function apply_rebate_after_purchase!(agent, model)
-    if agent.transport_choice == 1 # If choice is AV
-        rebate_amount = model.private_AV_cost - AV_REBATE
-        agent.income += rebate_amount # Apply the rebate to the income
-    end
-end
-
-
-
 # adata = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
 # model = initialize()
 # adf, mdf = run!(model, 200; adata)
@@ -966,8 +960,12 @@ rh_attitudes_plot(travel_agents) = (travel_agents.rh_attitudes)
 rh_controlfactors_plot(travel_agents) = (travel_agents.rh_control_factors)
 rh_subjectivenorms_plot(travel_agents) = (travel_agents.rh_subjective_norm)
 
-
 travel_agents(a) = (a.is_promotion_agent == false) && (a.is_pt_agent == false)
+active_modes(travel_agents) = (travel_agents.transport_choice == 3) || (travel_agents.transport_choice == 4) || (travel_agents.transport_choice == 5) || (travel_agents.transport_choice == 6)
+sedentary_modes(travel_agents) = (travel_agents.transport_choice == 1) || (travel_agents.transport_choice == 2) || (travel_agents.transport_choice == 9) || (travel_agents.transport_choice == 7) || (travel_agents.transport_choice == 8) 
+activeandsedentary_trips(travel_agents) = (travel_agents.transport_choice == 3) || (travel_agents.transport_choice == 4) || (travel_agents.transport_choice == 5) || (travel_agents.transport_choice == 6)|| (travel_agents.transport_choice == 1) || (travel_agents.transport_choice == 2) || (travel_agents.transport_choice == 9) || (travel_agents.transport_choice == 7) || (travel_agents.transport_choice == 8)
+
+
 sedentary_behaviour_plot(travel_agents) = (travel_agents.sedentary_behaviour) 
 
 print(model.AVs_time_series)
@@ -977,10 +975,14 @@ print(model.RH_trips_time_series)
 avcount(model) = sum(model.AVs_time_series)
 rhcount(model) = sum(model.RH_trips_time_series)
 
+activetrips(model) = model.active_trips
+sedentarytrips(model) = model.sedentary_trips
+totaltrips(model) = model.total_trips
+
 # steps = 500
 adata = [(av_user, count), (auto_rh_user, count), (rh_user, count), (car_user, count), (pt_user, count), (personal_micromobility_user, count), (walker, count), (cyclist, count), (carsharing_user, count), 
-(sedentary_behaviour_plot, mean), (av_attitudes_plot, mean), (rh_attitudes_plot, mean), (rh_controlfactors_plot, mean), (rh_subjectivenorms_plot, mean)]
-mdata = [avcount, rhcount]
+(sedentary_behaviour_plot, mean), (av_attitudes_plot, mean), (rh_attitudes_plot, mean), (rh_controlfactors_plot, mean), (rh_subjectivenorms_plot, mean), (active_modes, count), (sedentary_modes, count), (activeandsedentary_trips, count)]
+mdata = [activetrips, sedentarytrips, totaltrips]
 # adata_individual = [:pos, :transport_choice, :age, :income, :original_transport_type, :av_attitudes, :av_control_factors, :av_facilitating_conditions, :av_subjective_norm, :rh_attitudes, :rh_control_factors, :rh_behavioural_intention, :impulsivity, :physical_health_layer, :sedentary_behaviour]
 adata_individual = [:pos, :income, :original_transport_type, :transport_choice, :av_attitudes, :av_control_factors, :av_subjective_norm, :av_descriptive_norm, :rh_attitudes, :rh_control_factors, :rh_subjective_norm, :rh_descriptive_norm]
 
@@ -990,7 +992,7 @@ agent_df, model_df = run!(model, 501; adata = adata, mdata = mdata)
 
 
 
-#CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/baseline_v1_24042024.csv", agent_df)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/AVpromotionpolicytesting_v2_01052024.csv", agent_df)
 
 
 
@@ -1009,7 +1011,7 @@ function plot_population_timeseries(agent_df)
     carsharing_agents = lines!(ax, agent_df.time, (agent_df.count_carsharing_user/model.total_agents*100), color = :cyan)
     # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
     # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
+    #figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
     figure
 end
 
@@ -1019,6 +1021,15 @@ function plot_population_health(adf)
     ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Time spent sedentary (average trips across agents)")
     sedentary_agent_plot_1 = lines!(ax, agent_df.time, agent_df.mean_sedentary_behaviour_plot, color = :olive)
     # figure[1, 2] = Legend(figure, [sedentary_agent_plot_1], ["Average sedentary trips"])
+    figure
+end
+
+function plot_active_vs_sedentary(mdf)
+    figure = Figure()
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Percentage of trips (%)")
+    active_trips_plot = lines!(ax, agent_df.time, ((agent_df.count_active_modes/250)*100), color = :green)
+    sedentary_trips_plot = lines!(ax, agent_df.time, ((agent_df.count_sedentary_modes/250)*100), color = :blue)
+    figure[1, 2] = Legend(figure, [active_trips_plot, sedentary_trips_plot], ["Active trips", "Sedentary trips"])
     figure
 end
 
@@ -1059,18 +1070,20 @@ end
 
 # # Plot graphs: 
 Fig_1 = plot_population_timeseries(agent_df)
-Fig_2 = plot_population_health(agent_df)
+#Fig_2 = plot_population_health(agent_df)
 Fig_3 = plot_av_attitudes(agent_df)
-Fig_4 = plot_rh_attitudes(agent_df)
+#Fig_4 = plot_rh_attitudes(agent_df)
 #Fig_5 = plot_rh_control_factors(agent_df)
-Fig_6 = plot_rh_subjective_norms(agent_df)
+#Fig_6 = plot_rh_subjective_norms(agent_df)
+#Fig_7 = plot_active_vs_sedentary(model_df)
 
 display(Fig_1)
-display(Fig_2)
+#display(Fig_2)
 display(Fig_3)
-display(Fig_4)
+#display(Fig_4)
 #display(Fig_5)
-display(Fig_6)
+#display(Fig_6)
+#display(Fig_7)
 
 
 
