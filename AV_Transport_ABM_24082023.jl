@@ -773,7 +773,7 @@ function initialize(; total_agents = 250, gridsize = (20, 20), private_AV_cost =
         #  PROMOTION AGENT 
         is_promotion_agent = true 
         promotion_coverage_radius = 2
-        av_advertising_efficacy = 0.01
+        av_advertising_efficacy = 0.0001
         pt_active_transport_advertising_efficacy = 1.5
 
         #COGNITIVE LAYER - WALKING
@@ -992,7 +992,7 @@ agent_df, model_df = run!(model, 501; adata = adata, mdata = mdata)
 
 
 
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/AVpromotionpolicytesting_v2_01052024.csv", agent_df)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/nonAVscenario_01052024.csv", agent_df)
 
 
 
