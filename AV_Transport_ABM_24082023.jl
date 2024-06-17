@@ -992,14 +992,14 @@ agent_df, model_df = run!(model, 501; adata = adata, mdata = mdata)
 
 
 
-CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/nonAVscenario_01052024.csv", agent_df)
+CSV.write("C:/Users/godicb/OneDrive - The University of Melbourne/Documents/Julia/AV_Transport_ABM/nonAVscenario_14062024.csv", agent_df)
 
 
 
 
 function plot_population_timeseries(agent_df)
     figure = Figure()
-    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population percentage (%)")
+    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Population percentage (%)", xlabelsize = 10, ylabelsize = 10)
     av_agents = lines!(ax, agent_df.time, (agent_df.count_av_user/model.total_agents*100), color = :blue)
     auto_rh_agents = lines!(ax, agent_df.time, (agent_df.count_auto_rh_user/model.total_agents*100), color = :green)
     car_agents = lines!(ax, agent_df.time, (agent_df.count_car_user/model.total_agents*100), color = :purple)
@@ -1011,7 +1011,7 @@ function plot_population_timeseries(agent_df)
     carsharing_agents = lines!(ax, agent_df.time, (agent_df.count_carsharing_user/model.total_agents*100), color = :cyan)
     # av_population = lines!(ax, mdf.step, mdf.avcount, color = :green)
     # rh_population = lines!(ax, mdf.step, mdf.rhcount, color = :blue)
-    #figure[1, 2] = Legend(figure, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["AVs", "Autonomous RH users", "Car users", "Public transport", "Personal micromobility users", "Walkers", "Cyclists", "Ride hail users", "Car sharing users"])
+    axislegend(ax, [av_agents, auto_rh_agents, car_agents, pt_agents, personal_micromobility_agents, walker_agents, cyclist_agents, rh_agents, carsharing_agents], ["Private AV", "Autonomous RH", "Car", "Public transport", "Personal micromobility", "Walking", "Cycling", "Conventional ride hail", "Car sharing"], labelsize = 10, patchsize = (10,10), position = :rb)
     figure
 end
 
@@ -1026,7 +1026,7 @@ end
 
 function plot_active_vs_sedentary(mdf)
     figure = Figure()
-    ax = figure[1, 1] = Axis(figure; xlabel = "Step", ylabel = "Percentage of trips (%)")
+    ax = Axis(figure[1, 1], limits = (nothing, nothing, nothing, 100), yticks = (0:10:100); xlabel = "Step", ylabel = "Percentage of trips (%)", xlabelsize = 10, ylabelsize = 10)
     active_trips_plot = lines!(ax, agent_df.time, ((agent_df.count_active_modes/250)*100), color = :green)
     sedentary_trips_plot = lines!(ax, agent_df.time, ((agent_df.count_sedentary_modes/250)*100), color = :blue)
     figure[1, 2] = Legend(figure, [active_trips_plot, sedentary_trips_plot], ["Active trips", "Sedentary trips"])
@@ -1071,7 +1071,7 @@ end
 # # Plot graphs: 
 Fig_1 = plot_population_timeseries(agent_df)
 #Fig_2 = plot_population_health(agent_df)
-Fig_3 = plot_av_attitudes(agent_df)
+#Fig_3 = plot_av_attitudes(agent_df)
 #Fig_4 = plot_rh_attitudes(agent_df)
 #Fig_5 = plot_rh_control_factors(agent_df)
 #Fig_6 = plot_rh_subjective_norms(agent_df)
@@ -1079,11 +1079,12 @@ Fig_3 = plot_av_attitudes(agent_df)
 
 display(Fig_1)
 #display(Fig_2)
-display(Fig_3)
+#display(Fig_3)
 #display(Fig_4)
 #display(Fig_5)
 #display(Fig_6)
 #display(Fig_7)
+
 
 
 
